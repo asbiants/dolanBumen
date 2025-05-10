@@ -1,7 +1,7 @@
-import React from "react";
-
-const firstPage = () => {
-  return <div>first Page</div>;
-};
-
-export default firstPage;
+export default function Home() {
+  return (
+    <div className="max-w-screen-xl mx-auto py-6 p-4">
+      <h1 className="text-2xl">Home Page</h1>
+    </div>
+  );
+}
