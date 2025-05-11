@@ -82,7 +82,7 @@ export default function AdminLayout({
 
   // If it's an auth page (login or init), just render the children without admin layout
   if (isAuthPage) {
-    return <>{children}</>;
+    return <div className="admin-auth-layout">{children}</div>;
   }
 
   // Show loading screen while checking authentication
@@ -96,9 +96,32 @@ export default function AdminLayout({
   }
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="flex h-screen w-full overflow-hidden bg-background">
+      {/* Hide all elements from the root layout */}
+      <style jsx global>{`
+        body > header,
+        body > footer {
+          display: none;
+        }
+        body > main {
+          padding: 0;
+          margin: 0;
+          display: flex;
+          flex: 1;
+          width: 100%;
+          max-width: 100%;
+          overflow: hidden;
+        }
+        html,
+        body {
+          height: 100%;
+          width: 100%;
+          overflow: hidden;
+        }
+      `}</style>
+
       {/* Sidebar */}
-      <div className="hidden w-64 flex-col border-r bg-muted/40 p-6 md:flex">
+      <div className="hidden h-screen w-64 flex-shrink-0 flex-col border-r bg-muted/40 p-6 md:flex">
         <div className="flex h-14 items-center border-b">
           <h2 className="text-lg font-semibold">Admin Dashboard</h2>
         </div>
@@ -186,7 +209,7 @@ export default function AdminLayout({
       </div>
 
       {/* Mobile header and main content */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex flex-1 flex-col w-full overflow-hidden">
         {/* Mobile header */}
         <header className="md:hidden sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <div className="px-4 sm:px-6 h-16 flex items-center justify-between">
@@ -298,7 +321,7 @@ export default function AdminLayout({
         </div>
 
         {/* Main content */}
-        <div className="flex-1 overflow-auto p-6">{children}</div>
+        <div className="flex-1 w-full overflow-auto p-6">{children}</div>
       </div>
     </div>
   );
