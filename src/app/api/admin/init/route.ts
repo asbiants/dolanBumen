@@ -5,18 +5,19 @@ import { z } from "zod";
 
 const prisma = new PrismaClient();
 
-// Validation schema for request body
+// validasi skema ke dalam form nanti untuk mendefinisikan setiap jenis data yang diinput
 const adminSchema = z.object({
   email: z.string().email(),
   password: z.string().min(8),
 });
 
+//endpoint utama ketika menggunakan API admin/init metode post untuk add data to database
 export async function POST(request: Request) {
   try {
-    // Parse request body
+    //mengambil data JSON dari body
     const body = await request.json();
 
-    // Validate request body
+    // memvalidasi request bodyy yang diambil dengan menggunakan zod schema admin yang telah didefinisikan diatas ln.9
     const validationResult = adminSchema.safeParse(body);
     if (!validationResult.success) {
       return NextResponse.json(
@@ -28,21 +29,21 @@ export async function POST(request: Request) {
       );
     }
 
-    const { email, password } = validationResult.data;
+    const { email, password } = validationResult.data; //apabila sesuai ketentuan langsung diambil datanya
 
-    // Check if a super admin already exists
+    // mengecek apakah role super admin ada atau tidak
     const superAdminCount = await prisma.user.count({
       where: {
-        role: "SUPER_ADMIN", // Using the mapped value from schema.prisma
+        role: "SUPER_ADMIN", // menggunakan prismaclient metode count (mencari keseluruhan data di dalam data base)
       },
     });
 
-    // If a super admin already exists, reject the request
+    // apabila terdapat email atau role superadmin dalam sistem, maka akses untuk membuat akun super admin diberhentikan
     if (superAdminCount > 0) {
       return NextResponse.json({ message: "Super admin already exists" }, { status: 403 });
     }
 
-    // Check if email is already in use
+    // fungsi untuk mengecek apakah email sudah pernah digunakan untuk mendaftar atau belum
     const existingUser = await prisma.user.findUnique({
       where: {
         email,
@@ -53,20 +54,20 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: "Email is already in use" }, { status: 400 });
     }
 
-    // Hash the password
+    // fungsi untuk mengenkripsi password ke dalam basisdata (bcrypt)
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create the super admin user
+    // apabila kondisi terpenuhi, langsung menyimpan data ke dalam basis data (create)
     const newAdmin = await prisma.user.create({
       data: {
         email,
         password: hashedPassword,
-        role: "SUPER_ADMIN", // Using the mapped value from schema.prisma
-        name: "Super Admin", // Default name, can be updated later
+        role: "SUPER_ADMIN", // settingan default untuk atribut data role
+        name: "Super Admin", // settingan default untuk atribut data nama
       },
     });
 
-    // Return success response (without sensitive data)
+    // Return respon apabila akun berhasil dibuat
     return NextResponse.json(
       {
         message: "Super admin created successfully",

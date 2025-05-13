@@ -5,22 +5,22 @@ import * as jwt from "jsonwebtoken";
 import { z } from "zod";
 
 const prisma = new PrismaClient();
-
-// Get JWT secret from environment variable or use a fallback for development
+// fungsi untuk mendapatkan get json web token untuk mengatur session
 const JWT_SECRET = process.env.JWT_SECRET || "your-super-secret-jwt-key-for-development";
 
-// Validation schema for request body
+// validasti untuk form login
 const loginSchema = z.object({
   email: z.string().email(),
   password: z.string().min(1),
 });
 
+//isi dari metode ini yaitu POST
 export async function POST(request: Request) {
   try {
-    // Parse request body
+    // Parsing data dari request body
     const body = await request.json();
 
-    // Validate request body
+    // validasi untuk inputan email dan password sesuai dengan skema atau tidak
     const validationResult = loginSchema.safeParse(body);
     if (!validationResult.success) {
       return NextResponse.json(
