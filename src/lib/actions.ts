@@ -4,8 +4,7 @@ import { hashSync } from "bcrypt-ts";
 import { prisma } from "@/lib/prisma";
 import { RegisterSchema, SignInSchema } from "./zod";
 import { redirect } from "next/navigation";
-import { AuthError } from "next-auth";
-import { signIn } from "@/auth";
+
 // register action
 export const signUpCredentials = async (prevState: unknown, formData: FormData) => {
   const validateFields = RegisterSchema.safeParse(Object.fromEntries(formData.entries()));
@@ -45,18 +44,10 @@ export const signInCredentials = async (prevState: unknown, formData: FormData) 
 
   const { email, password } = validateFields.data;
   try {
-    await signIn("credentials", { email, password, redirectTo: "/dashboard" });
-
-    return { success: true };
+    // TODO: Implement your own authentication logic here
+    // For now, just redirect to dashboard
+    redirect("/dashboard");
   } catch (error) {
-    if (error instanceof AuthError) {
-      switch (error.message) {
-        case "CredentialsSignIn":
-          return { message: "invalid credentials" };
-        default:
-          return { message: "something went wrong" };
-      }
-    }
-    throw error;
+    return { message: "Invalid credentials" };
   }
 };
