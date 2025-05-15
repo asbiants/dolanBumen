@@ -28,11 +28,12 @@ model User {
   createdAt       DateTime  @default(now()) @map("created_at")
   updatedAt       DateTime  @updatedAt @map("updated_at")
   
-  destinations    TouristDestination[]
   orders          Order[]
   complaints      Complaint[]
   reviews         DestinationReview[]
   adminComplaints Complaint[] @relation("AdminComplaints")
+  adminDestinations TouristDestination[] @relation("AdminDestinations")
+  sessions        Session[]
   
   @@map("users")
 }
@@ -48,13 +49,12 @@ model VerificationToken {
 }
 
 model DestinationCategory {
-  id          String    @id @default(cuid())
+  id          String   @id @default(cuid())
   name        String
-  nameId      String?   @map("name_id")
   description String?
   icon        String?
-  color       String?
-  createdAt   DateTime  @default(now()) @map("created_at")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
   
   destinations TouristDestination[]
   
@@ -78,7 +78,7 @@ model TouristDestination {
   updatedAt     DateTime  @updatedAt @map("updated_at")
   
   category      DestinationCategory? @relation(fields: [categoryId], references: [id])
-  admin         User?     @relation(fields: [adminId], references: [id])
+  admin         User?     @relation("AdminDestinations", fields: [adminId], references: [id])
   photos        DestinationPhoto[]
   tickets       Ticket[]
   complaints    Complaint[]

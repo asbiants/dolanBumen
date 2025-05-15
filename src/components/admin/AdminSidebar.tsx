@@ -31,7 +31,7 @@ export default function AdminSidebar({ user, onLogout, router }: AdminSidebarPro
         <nav className="flex-1 pt-4">
           <div className="space-y-1">
           <Button variant="ghost" className="w-full justify-start" onClick={() => router.push("/admin/dashboard")}> <BarChart className="mr-2 h-4 w-4" /><span>Dashboard</span></Button>
-            <Button variant="ghost" className="w-full justify-start" onClick={() => router.push("/admin/destinations-category")}> <MapPin className="mr-2 h-4 w-4" /><span>Kategori Wisata</span></Button>
+            <Button variant="ghost" className="w-full justify-start" onClick={() => router.push("/admin/destination-categories")}> <MapPin className="mr-2 h-4 w-4" /><span>Kategori Wisata</span></Button>
             <Button variant="ghost" className="w-full justify-start" onClick={() => router.push("/admin/destinations")}> <MapPin className="mr-2 h-4 w-4" /><span>Destinasi Wisata</span></Button>
             <Button variant="ghost" className="w-full justify-start" onClick={() => router.push("/admin/tickets")}> <Ticket className="mr-2 h-4 w-4" /><span>Transaksi E-Ticket</span></Button>
             <Button variant="ghost" className="w-full justify-start" onClick={() => router.push("/admin/orders")}> <ShoppingCart className="mr-2 h-4 w-4" /><span>Daftar Pengunjung</span></Button>
@@ -57,7 +57,7 @@ export default function AdminSidebar({ user, onLogout, router }: AdminSidebarPro
           </div>
           <nav className="space-y-1">
             <Button variant="ghost" className="w-full justify-start" onClick={() => router.push("/admin/dashboard")}> <BarChart className="mr-2 h-4 w-4" /><span>Dashboard</span></Button>
-            <Button variant="ghost" className="w-full justify-start" onClick={() => router.push("/admin/destinations-category")}> <MapPin className="mr-2 h-4 w-4" /><span>Kategori Wisata</span></Button>
+            <Button variant="ghost" className="w-full justify-start" onClick={() => router.push("/admin/destination-categories")}> <MapPin className="mr-2 h-4 w-4" /><span>Kategori Wisata</span></Button>
             <Button variant="ghost" className="w-full justify-start" onClick={() => router.push("/admin/destinations")}> <MapPin className="mr-2 h-4 w-4" /><span>Destinasi Wisata</span></Button>
             <Button variant="ghost" className="w-full justify-start" onClick={() => router.push("/admin/tickets")}> <Ticket className="mr-2 h-4 w-4" /><span>Transaksi E-Ticket</span></Button>
             <Button variant="ghost" className="w-full justify-start" onClick={() => router.push("/admin/orders")}> <ShoppingCart className="mr-2 h-4 w-4" /><span>Daftar Pengunjung</span></Button>

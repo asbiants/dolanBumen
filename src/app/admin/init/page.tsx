@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
-// Validation schema for the form
+//validasi skema form login, mengatur agar email dan password yang diinputkan sesuai dengan ketentuan
 const formSchema = z.object({
   email: z.string().min(1, { message: "Email is required" }).email({ message: "Must be a valid email" }),
   password: z.string().min(8, { message: "Password must be at least 8 characters long" }),
@@ -25,11 +25,11 @@ type FormValues = z.infer<typeof formSchema>;
 export default function AdminInitPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
+  const [showPassword, setShowPassword] = useState(false); //fungsi untuk menampilkank dan menghide password pada form
   const [apiError, setApiError] = useState<string | null>(null);
   const [isSuperAdminExists, setIsSuperAdminExists] = useState(false);
 
-  // Initialize form
+  // inisialisasi form dari skema yang sudah dibuat menggunakan "zod"
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -38,15 +38,17 @@ export default function AdminInitPage() {
     },
   });
 
-  // Check if super admin already exists
+  //fungsi untuk mengecek apakah super admin sudah ada atau belum
   const checkSuperAdmin = async () => {
     try {
+      //memanggil API check init untuk mengecek apakah super admin sudah ada atau belum dengan metode GET
       const response = await fetch("/api/admin/init/check", {
         method: "GET",
       });
 
       const data = await response.json();
       if (data.exists) {
+        //jika super admin ada didalam database, mengubah nilai state dari setIsSuperAdminExist menjadi true (default di setting false)
         setIsSuperAdminExists(true);
       }
     } catch (error) {
@@ -54,17 +56,18 @@ export default function AdminInitPage() {
     }
   };
 
-  // Call the check on component mount
+  // memanggil checkSuperAdmin untuk dijalankan dengan menggunakan useEffect
   useEffect(() => {
     checkSuperAdmin();
   }, []);
 
-  // Form submission handler
+  // handle form submit
   const onSubmit = async (values: FormValues) => {
     setIsLoading(true);
     setApiError(null);
 
     try {
+      //mengarahkan ke API init untuk menginisiasi apakah memiliki akses atau tidak ke halaman register ssuper admin
       const response = await fetch("/api/admin/init", {
         method: "POST",
         headers: {
@@ -79,7 +82,7 @@ export default function AdminInitPage() {
         throw new Error(data.message || "Failed to create super admin");
       }
 
-      // Redirect to login page after successful creation
+      // apabila berhasil langsung di redirect ke halaman login
       router.push("/admin/login?success=true");
     } catch (error) {
       setApiError(error instanceof Error ? error.message : "An unknown error occurred");
@@ -88,7 +91,7 @@ export default function AdminInitPage() {
     }
   };
 
-  // If super admin exists, show a message
+  // tampilan antar muka pengguna apabila akun super admin terdapat pada sistem
   if (isSuperAdminExists) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-50">
