@@ -56,11 +56,10 @@ CREATE TABLE "verification_tokens" (
 CREATE TABLE "destination_categories" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
-    "name_id" TEXT,
     "description" TEXT,
     "icon" TEXT,
-    "color" TEXT,
-    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "destination_categories_pkey" PRIMARY KEY ("id")
 );
@@ -241,6 +240,17 @@ CREATE TABLE "districts" (
     CONSTRAINT "districts_pkey" PRIMARY KEY ("id")
 );
 
+-- CreateTable
+CREATE TABLE "sessions" (
+    "id" TEXT NOT NULL,
+    "session_token" TEXT NOT NULL,
+    "user_id" TEXT NOT NULL,
+    "expires" TIMESTAMP(3) NOT NULL,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "sessions_pkey" PRIMARY KEY ("id")
+);
+
 -- CreateIndex
 CREATE UNIQUE INDEX "users_email_key" ON "users"("email");
 
@@ -252,6 +262,9 @@ CREATE UNIQUE INDEX "payment_transactions_order_id_key" ON "payment_transactions
 
 -- CreateIndex
 CREATE UNIQUE INDEX "e_tickets_ticket_code_key" ON "e_tickets"("ticket_code");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "sessions_session_token_key" ON "sessions"("session_token");
 
 -- AddForeignKey
 ALTER TABLE "tourist_destinations" ADD CONSTRAINT "tourist_destinations_category_id_fkey" FOREIGN KEY ("category_id") REFERENCES "destination_categories"("id") ON DELETE SET NULL ON UPDATE CASCADE;
@@ -300,3 +313,6 @@ ALTER TABLE "destination_reviews" ADD CONSTRAINT "destination_reviews_destinatio
 
 -- AddForeignKey
 ALTER TABLE "transportation_points" ADD CONSTRAINT "transportation_points_transportation_type_id_fkey" FOREIGN KEY ("transportation_type_id") REFERENCES "transportation_types"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "sessions" ADD CONSTRAINT "sessions_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
