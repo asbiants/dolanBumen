@@ -3,18 +3,23 @@ import { prisma } from "@/lib/prisma";
 import { cloudinary } from "@/lib/cloudinary";
 
 // GET /api/admin/tourist-destinations
-export async function GET() {
+export async function GET(req: Request) {
     try {
+        const { searchParams } = new URL(req.url);
+        const categoryId = searchParams.get("categoryId");
+
         const destinations = await prisma.touristDestination.findMany({
+            where: {
+                ...(categoryId && { categoryId }), // Add categoryId filter if it exists
+            },
             orderBy: {
                 createdAt: "desc",
             },
-            include: { 
+            include: {
                 category: true,
             },
         });
 
-        
 
         return NextResponse.json( destinations);
     } catch (error) {

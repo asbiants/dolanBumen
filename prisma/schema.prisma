@@ -177,12 +177,15 @@ model Complaint {
   id            String    @id @default(cuid())
   userId        String    @map("user_id")
   destinationId String    @map("destination_id")
-  subject       String
-  content       String    @db.Text
+  jenis         String
+  narahubung    String
+  deskripsi     String
+  longitude     String
+  latitude      String
   attachment    String?
   status        ComplaintStatus @default(NEW)
-  response      String?   @db.Text
-  responseDate  DateTime? @map("response_date")
+  response      String?
+  responseDate  DateTime?
   adminId       String?   @map("admin_id")
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime  @updatedAt @map("updated_at")

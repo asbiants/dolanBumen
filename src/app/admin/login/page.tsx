@@ -71,7 +71,7 @@ export default function AdminLoginPage() {
       if (!response.ok) {
         throw new Error(data.message || "Autentikasi gagal");
       }
-      router.push("/admin/dashboard");
+      window.location.href = "/admin/dashboard";
     } catch (error) {
       setError(error instanceof Error ? error.message : "Autentikasi gagal");
     } finally {
@@ -81,7 +81,7 @@ export default function AdminLoginPage() {
 
   return (
     <>
-    <Navbar />
+    
     <div className="flex items-center justify-center min-h-screen bg-gray-50">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">

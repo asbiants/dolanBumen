@@ -2,11 +2,9 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { TicketType, TicketStatus } from "@prisma/client";
 
-export async function DELETE(req: Request,
-    { params }: { params: { ticketId: string } }
-) {
+export async function DELETE( req: Request,{ params }: { params: Promise<{ ticketId: string }> }) {
     try {
-        const { ticketId } = params;
+        const { ticketId } = await params;
 
         if (!ticketId) {
             return new NextResponse("Ticket ID is required", { status: 400 });

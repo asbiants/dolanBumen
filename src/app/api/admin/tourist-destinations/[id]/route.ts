@@ -115,11 +115,36 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
         await cloudinary.uploader.destroy(publicId);
       }
     }
+    // Delete all related photos
+    await prisma.destinationPhoto.deleteMany({ where: { destinationId: id } });
+    // Delete all related tickets
+    await prisma.ticket.deleteMany({ where: { destinationId: id } });
     // Delete destination from database
     await prisma.touristDestination.delete({ where: { id } });
     return new NextResponse(null, { status: 204 });
   } catch (error) {
     console.error("[TOURIST_DESTINATIONS_DELETE]", error);
+    return new NextResponse("Internal error", { status: 500 });
+  }
+}
+
+// GET /api/admin/tourist-destinations/[id]
+export async function GET(request: Request, { params }: { params: { id: string } }) {
+  const { id } = params;
+  if (!id) {
+    return new NextResponse("Destination ID is required", { status: 400 });
+  }
+  try {
+    const destination = await prisma.touristDestination.findUnique({
+      where: { id },
+      include: { category: true }
+    });
+    if (!destination) {
+      return new NextResponse("Destination not found", { status: 404 });
+    }
+    return NextResponse.json(destination);
+  } catch (error) {
+    console.error("[TOURIST_DESTINATIONS_GET]", error);
     return new NextResponse("Internal error", { status: 500 });
   }
 } 
