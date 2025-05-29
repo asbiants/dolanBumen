@@ -125,4 +125,32 @@ export async function DELETE(
     console.error("[DESTINATION_CATEGORY_DELETE]", error);
     return new NextResponse("Internal error", { status: 500 });
   }
+}
+
+export async function GET(
+    req: Request,
+    { params }: { params: { categoryId: string } }
+) {
+    try {
+        const { categoryId } = params;
+
+        if (!categoryId) {
+            return new NextResponse("Category ID is required", { status: 400 });
+        }
+
+        const category = await prisma.destinationCategory.findUnique({
+            where: {
+                id: categoryId,
+            },
+        });
+
+        if (!category) {
+            return new NextResponse("Category not found", { status: 404 });
+        }
+
+        return NextResponse.json(category);
+    } catch (error) {
+        console.error("[DESTINATION_CATEGORY_GET]", error);
+        return new NextResponse("Internal error", { status: 500 });
+    }
 } 

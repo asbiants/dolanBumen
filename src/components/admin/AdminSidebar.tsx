@@ -35,7 +35,7 @@ export default function AdminSidebar({ user, onLogout, router }: AdminSidebarPro
             <Button variant="ghost" className="w-full justify-start" onClick={() => router.push("/admin/tourist-destinations")}> <MapPin className="mr-2 h-4 w-4" /><span>Destinasi Wisata</span></Button>
             <Button variant="ghost" className="w-full justify-start" onClick={() => router.push("/admin/tickets")}> <Ticket className="mr-2 h-4 w-4" /><span>Transaksi E-Ticket</span></Button>
             <Button variant="ghost" className="w-full justify-start" onClick={() => router.push("/admin/orders")}> <ShoppingCart className="mr-2 h-4 w-4" /><span>Daftar Pengunjung</span></Button>
-            <Button variant="ghost" className="w-full justify-start" onClick={() => router.push("/admin/complaints")}> <MessageSquare className="mr-2 h-4 w-4" /><span>Pelaporan</span></Button>
+            <Button variant="ghost" className="w-full justify-start" onClick={() => router.push("/admin/pengaduan-admin")}> <MessageSquare className="mr-2 h-4 w-4" /><span>Pelaporan</span></Button>
             <Button variant="ghost" className="w-full justify-start" onClick={() => router.push("/admin/users")}> <Users className="mr-2 h-4 w-4" /><span>Manajemen User</span></Button>
           </div>
         </nav>
@@ -61,7 +61,7 @@ export default function AdminSidebar({ user, onLogout, router }: AdminSidebarPro
             <Button variant="ghost" className="w-full justify-start" onClick={() => router.push("/admin/tourist-destinations")}> <MapPin className="mr-2 h-4 w-4" /><span>Destinasi Wisata</span></Button>
             <Button variant="ghost" className="w-full justify-start" onClick={() => router.push("/admin/tickets")}> <Ticket className="mr-2 h-4 w-4" /><span>Transaksi E-Ticket</span></Button>
             <Button variant="ghost" className="w-full justify-start" onClick={() => router.push("/admin/orders")}> <ShoppingCart className="mr-2 h-4 w-4" /><span>Daftar Pengunjung</span></Button>
-            <Button variant="ghost" className="w-full justify-start" onClick={() => router.push("/admin/complaints")}> <MessageSquare className="mr-2 h-4 w-4" /><span>Pelaporan</span></Button>
+            <Button variant="ghost" className="w-full justify-start" onClick={() => router.push("/admin/pengaduan-admin")}> <MessageSquare className="mr-2 h-4 w-4" /><span>Pelaporan</span></Button>
             <Button variant="ghost" className="w-full justify-start" onClick={() => router.push("/admin/users")}> <Users className="mr-2 h-4 w-4" /><span>Manajemen User</span></Button>
           </nav>
           <div className="mt-4">

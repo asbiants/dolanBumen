@@ -5,27 +5,24 @@ import * as jwt from "jsonwebtoken";
 import { z } from "zod";
 
 const prisma = new PrismaClient();
-// fungsi untuk mendapatkan get json web token untuk mengatur session
 const JWT_SECRET = process.env.JWT_SECRET || "your-super-secret-jwt-key-for-development";
 
-// validasti untuk form login
+// Validation schema for login
 const loginSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(1),
+  email: z.string().email("Format email tidak valid"),
+  password: z.string().min(1, "Password wajib diisi"),
 });
 
-//isi dari metode ini yaitu POST
 export async function POST(request: Request) {
   try {
-    // Parsing data dari request body
     const body = await request.json();
 
-    // validasi untuk inputan email dan password sesuai dengan skema atau tidak
+    // Validate request data
     const validationResult = loginSchema.safeParse(body);
     if (!validationResult.success) {
       return NextResponse.json(
         {
-          message: "Invalid request data",
+          message: "Data tidak valid",
           errors: validationResult.error.errors,
         },
         { status: 400 }
@@ -36,23 +33,27 @@ export async function POST(request: Request) {
 
     // Find user by email
     const user = await prisma.user.findUnique({
-      where: {
-        email,
-      },
+      where: { email },
     });
 
-    // If user not found or not an admin
-    if (!user || (user.role !== "SUPER_ADMIN" && user.role !== "TOURISM_ADMIN")) {
-      return NextResponse.json({ message: "Email atau password salah" }, { status: 401 });
+    // Check if user exists and is a consumer
+    if (!user || user.role !== "CONSUMER") {
+      return NextResponse.json(
+        { message: "Email atau password salah" },
+        { status: 401 }
+      );
     }
 
     // Check if password is correct
     const isPasswordValid = await bcrypt.compare(password, user.password || "");
     if (!isPasswordValid) {
-      return NextResponse.json({ message: "Email atau password salah" }, { status: 401 });
+      return NextResponse.json(
+        { message: "Email atau password salah" },
+        { status: 401 }
+      );
     }
 
-    // Create JWT payload (don't include sensitive info like password)
+    // Create JWT payload
     const payload = {
       id: user.id,
       email: user.email,
@@ -60,19 +61,19 @@ export async function POST(request: Request) {
       role: user.role,
     };
 
-    // Generate JWT token with expiration (7 days)
+    // Generate JWT token
     const token = jwt.sign(payload, JWT_SECRET, { expiresIn: "7d" });
 
-    // Create response with token and user data
+    // Create response
     const response = NextResponse.json({
       message: "Login berhasil",
       user: payload,
-      token: token,
+      token,
     });
 
-    // Set JWT in an HTTP-only cookie for security
+    // Set JWT in HTTP-only cookie
     response.cookies.set({
-      name: "admin-token",
+      name: "consumer-token",
       value: token,
       httpOnly: true,
       path: "/",
@@ -83,6 +84,9 @@ export async function POST(request: Request) {
     return response;
   } catch (error) {
     console.error("Login error:", error);
-    return NextResponse.json({ message: "Terjadi kesalahan saat login" }, { status: 500 });
+    return NextResponse.json(
+      { message: "Terjadi kesalahan saat login" },
+      { status: 500 }
+    );
   }
-}
+} 
