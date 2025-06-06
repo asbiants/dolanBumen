@@ -24,10 +24,10 @@ export async function DELETE( req: Request,{ params }: { params: Promise<{ ticke
 }
 
 export async function PATCH(req: Request,
-    { params }: { params: { ticketId: string } }
+    { params }: { params: Promise<{ ticketId: string }> }
 ) {
     try {
-        const { ticketId } = params;
+        const { ticketId } = await params;
         const formData = await req.formData();
 
         const name = formData.get("name") as string;

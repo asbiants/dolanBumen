@@ -7,6 +7,7 @@ import { Eye, EyeOff, Lock, Mail } from "lucide-react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import Image from "next/image";
 
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -70,11 +71,12 @@ export default function ConsumerLoginPage() {
   return (
     <>
       <Navbar />
-      <div className="flex items-center justify-center min-h-screen bg-gray-50">
-        <Card className="w-full max-w-md">
-          <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl font-bold">Login</CardTitle>
-            <CardDescription>Masuk ke akun Anda</CardDescription>
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 py-8">
+        <Card className="w-full max-w-md shadow-xl rounded-2xl border-0">
+          <CardHeader className="space-y-1 flex flex-col items-center">
+            <Image src="/logo/Logo-dolanBumen.svg" alt="Logo DolanBumen" width={120} height={60} className="mb-2" />
+            <CardTitle className="text-2xl font-bold text-center">Login</CardTitle>
+            <CardDescription className="text-center">Masuk ke akun Anda</CardDescription>
           </CardHeader>
           <CardContent>
             {error && (
@@ -143,6 +145,14 @@ export default function ConsumerLoginPage() {
                     Daftar di sini
                   </Link>
                 </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full mt-2"
+                  onClick={() => router.push('/admin/login')}
+                >
+                  Login sebagai Admin
+                </Button>
               </form>
             </Form>
           </CardContent>

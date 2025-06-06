@@ -90,7 +90,7 @@ export default function AdminLayout({
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-background">
-      <AdminSidebar user={user} onLogout={handleLogout} router={router} />
+      <AdminSidebar user={user} onLogout={handleLogout} router={router} pathname={pathname} />
       {/* Mobile header and main content */}
       <div className="flex flex-1 flex-col w-full overflow-hidden">
         {/* Mobile header */}

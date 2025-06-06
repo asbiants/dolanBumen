@@ -12,6 +12,7 @@ import Image from "next/image";
 import "keen-slider/keen-slider.min.css";
 import { useKeenSlider } from "keen-slider/react";
 import { Marker } from "react-map-gl";
+import Loading from "@/components/loading/loading";
 
 const Map = dynamic(() => import("react-map-gl"), { ssr: false });
 
@@ -89,11 +90,33 @@ export default function TouristDestinationDetail() {
     setSubmitting(false);
   };
 
-  if (loading) return <div className="text-center py-20">Loading...</div>;
-  if (error || !destination) return <div className="text-center py-20 text-red-500">{error || "Data tidak ditemukan"}</div>;
+  if (loading) return (
+    <>
+      <Navbar />
+      <Loading message="Memuat detail destinasi..." />
+      <Footer />
+    </>
+  );
+  if (error || !destination) return (
+    <>
+      <Navbar />
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center text-red-500">
+          <p>{error || "Data tidak ditemukan"}</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="mt-4 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
+          >
+            Coba Lagi
+          </button>
+        </div>
+      </div>
+      <Footer />
+    </>
+  );
 
   return (
-    <div className="bg-gradient-to-b from-[#F7F2EF] to-white min-h-screen">
+    <div className="min-h-screen">
       <Navbar />
       <div className="bg-gradient-to-r from-[#5DB6E2] to-[#4A9BC7] py-8 px-4 md:px-0 shadow-lg">
         <div className="max-w-6xl mx-auto flex items-center gap-4">

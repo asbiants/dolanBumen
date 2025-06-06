@@ -13,9 +13,26 @@ interface AdminSidebarProps {
   user: User | null;
   onLogout: () => void;
   router: any;
+  pathname: string;
 }
 
-export default function AdminSidebar({ user, onLogout, router }: AdminSidebarProps) {
+export default function AdminSidebar({ user, onLogout, router, pathname }: AdminSidebarProps) {
+  // Helper untuk cek active
+  const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/");
+
+  const menus = [
+    { href: "/admin/dashboard", icon: BarChart, label: "Dashboard" },
+    { href: "/admin/destination-categories", icon: MapPin, label: "Kategori Wisata" },
+    { href: "/admin/tourist-destinations", icon: MapPin, label: "Destinasi Wisata" },
+    { href: "/admin/management-ticket", icon: Ticket, label: "Transaksi E-Ticket" },
+    { href: "/admin/management-visitors", icon: ShoppingCart, label: "Daftar Pengunjung", customActive: () => isActive("/admin/management-visitors") && !isActive("/admin/management-visitors/per-destination") },
+    { href: "/admin/management-visitors/per-destination", icon: BarChart, label: "Monitoring Kunjungan" },
+    { href: "/admin/pengaduan-admin", icon: MessageSquare, label: "Pengaduan" },
+  ];
+  if (user?.role === "SUPER_ADMIN") {
+    menus.push({ href: "/admin/management-users", icon: Users, label: "Manajemen User" });
+  }
+
   return (
     <>
       {/* Desktop Sidebar */}
@@ -30,13 +47,21 @@ export default function AdminSidebar({ user, onLogout, router }: AdminSidebarPro
         </div>
         <nav className="flex-1 pt-4">
           <div className="space-y-1">
-          <Button variant="ghost" className="w-full justify-start" onClick={() => router.push("/admin/dashboard")}> <BarChart className="mr-2 h-4 w-4" /><span>Dashboard</span></Button>
-            <Button variant="ghost" className="w-full justify-start" onClick={() => router.push("/admin/destination-categories")}> <MapPin className="mr-2 h-4 w-4" /><span>Kategori Wisata</span></Button>
-            <Button variant="ghost" className="w-full justify-start" onClick={() => router.push("/admin/tourist-destinations")}> <MapPin className="mr-2 h-4 w-4" /><span>Destinasi Wisata</span></Button>
-            <Button variant="ghost" className="w-full justify-start" onClick={() => router.push("/admin/tickets")}> <Ticket className="mr-2 h-4 w-4" /><span>Transaksi E-Ticket</span></Button>
-            <Button variant="ghost" className="w-full justify-start" onClick={() => router.push("/admin/orders")}> <ShoppingCart className="mr-2 h-4 w-4" /><span>Daftar Pengunjung</span></Button>
-            <Button variant="ghost" className="w-full justify-start" onClick={() => router.push("/admin/pengaduan-admin")}> <MessageSquare className="mr-2 h-4 w-4" /><span>Pelaporan</span></Button>
-            <Button variant="ghost" className="w-full justify-start" onClick={() => router.push("/admin/users")}> <Users className="mr-2 h-4 w-4" /><span>Manajemen User</span></Button>
+            {menus.map((menu) => {
+              const active = menu.customActive ? menu.customActive() : isActive(menu.href);
+              const Icon = menu.icon;
+              return (
+                <Button
+                  key={menu.href}
+                  variant={active ? "secondary" : "ghost"}
+                  className={`w-full justify-start ${active ? "font-bold text-primary" : ""}`}
+                  onClick={() => router.push(menu.href)}
+                >
+                  <Icon className="mr-2 h-4 w-4" />
+                  <span>{menu.label}</span>
+                </Button>
+              );
+            })}
           </div>
         </nav>
         <div className="mt-auto">
@@ -56,13 +81,21 @@ export default function AdminSidebar({ user, onLogout, router }: AdminSidebarPro
             <p className="text-xs text-muted-foreground mt-1 bg-primary/10 text-primary px-2 py-1 rounded inline-block">{user?.role === "SUPER_ADMIN" ? "Super Admin" : "Admin Pariwisata"}</p>
           </div>
           <nav className="space-y-1">
-            <Button variant="ghost" className="w-full justify-start" onClick={() => router.push("/admin/dashboard")}> <BarChart className="mr-2 h-4 w-4" /><span>Dashboard</span></Button>
-            <Button variant="ghost" className="w-full justify-start" onClick={() => router.push("/admin/destination-categories")}> <MapPin className="mr-2 h-4 w-4" /><span>Kategori Wisata</span></Button>
-            <Button variant="ghost" className="w-full justify-start" onClick={() => router.push("/admin/tourist-destinations")}> <MapPin className="mr-2 h-4 w-4" /><span>Destinasi Wisata</span></Button>
-            <Button variant="ghost" className="w-full justify-start" onClick={() => router.push("/admin/tickets")}> <Ticket className="mr-2 h-4 w-4" /><span>Transaksi E-Ticket</span></Button>
-            <Button variant="ghost" className="w-full justify-start" onClick={() => router.push("/admin/orders")}> <ShoppingCart className="mr-2 h-4 w-4" /><span>Daftar Pengunjung</span></Button>
-            <Button variant="ghost" className="w-full justify-start" onClick={() => router.push("/admin/pengaduan-admin")}> <MessageSquare className="mr-2 h-4 w-4" /><span>Pelaporan</span></Button>
-            <Button variant="ghost" className="w-full justify-start" onClick={() => router.push("/admin/users")}> <Users className="mr-2 h-4 w-4" /><span>Manajemen User</span></Button>
+            {menus.map((menu) => {
+              const active = menu.customActive ? menu.customActive() : isActive(menu.href);
+              const Icon = menu.icon;
+              return (
+                <Button
+                  key={menu.href}
+                  variant={active ? "secondary" : "ghost"}
+                  className={`w-full justify-start ${active ? "font-bold text-primary" : ""}`}
+                  onClick={() => router.push(menu.href)}
+                >
+                  <Icon className="mr-2 h-4 w-4" />
+                  <span>{menu.label}</span>
+                </Button>
+              );
+            })}
           </nav>
           <div className="mt-4">
             <Button variant="outline" className="w-full justify-start text-red-500" onClick={onLogout}>

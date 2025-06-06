@@ -28,16 +28,58 @@ model User {
   createdAt       DateTime  @default(now()) @map("created_at")
   updatedAt       DateTime  @updatedAt @map("updated_at")
   
-  orders          Order[]
   complaints      Complaint[]
   reviews         DestinationReview[]
   adminComplaints Complaint[] @relation("AdminComplaints")
   adminDestinations TouristDestination[] @relation("AdminDestinations")
   sessions        Session[]
+  bookingTransactions booking_transaction[]
   
   @@map("users")
 }
 
+enum JenisKendaraan {
+  MOTOR
+  MOBIL
+  BIG_BUS
+  MINI_BUS
+  SEPEDA
+}
+
+model booking_transaction {
+  id                    Int      @id @default(autoincrement())
+  nama                  String
+  phone                 String
+  email                 String
+  kendaraan             JenisKendaraan
+  jumlah_kendaraan      Int
+  customer_bank_name    String
+  customer_bank_account String
+  customer_bank_number  String
+  proof                 String
+  tanggal               DateTime
+  harga_satuan          Int
+  total_amount          Int
+  is_paid               Boolean
+  quantity              Int
+  booking_trx_id        String
+  destinasi_wisata_id   String
+  user_id               String
+  user                  User     @relation(fields: [user_id], references: [id])
+  tourist_destination   TouristDestination @relation(fields: [destinasi_wisata_id], references: [id])
+  pengunjung            pengunjung[]
+}
+
+model pengunjung {
+  id                    Int      @id @default(autoincrement())
+  nama                  String
+  usia                  Int
+  email                 String
+  destinasi_wisata_id   String
+  booking_transaction_id Int
+  booking_transaction   booking_transaction @relation(fields: [booking_transaction_id], references: [id])
+  tourist_destination   TouristDestination @relation(fields: [destinasi_wisata_id], references: [id])
+}
 
 model VerificationToken {
   identifier String
@@ -83,7 +125,8 @@ model TouristDestination {
   tickets       Ticket[]
   complaints    Complaint[]
   reviews       DestinationReview[]
-  orderItems    OrderItem[]
+  booking_transactions booking_transaction[]
+  pengunjung        pengunjung[]
   
   @@map("tourist_destinations")
 }
@@ -114,63 +157,8 @@ model Ticket {
   updatedAt     DateTime  @updatedAt @map("updated_at")
   
   destination   TouristDestination @relation(fields: [destinationId], references: [id])
-  orderItems    OrderItem[]
   
   @@map("tickets")
-}
-
-model Order {
-  id              String    @id @default(cuid())
-  userId          String    @map("user_id")
-  orderCode       String    @unique @map("order_code")
-  visitDate       DateTime  @map("visit_date")
-  totalAmount     Decimal   @db.Decimal(10, 2) @map("total_amount")
-  status          OrderStatus @default(PENDING)
-  paymentDeadline DateTime? @map("payment_deadline")
-  createdAt       DateTime  @default(now()) @map("created_at")
-  updatedAt       DateTime  @updatedAt @map("updated_at")
-  
-  user            User      @relation(fields: [userId], references: [id])
-  orderItems      OrderItem[]
-  paymentTransaction PaymentTransaction?
-  
-  @@map("orders")
-}
-
-model OrderItem {
-  id            String    @id @default(cuid())
-  orderId       String    @map("order_id")
-  ticketId      String    @map("ticket_id")
-  destinationId String    @map("destination_id")
-  quantity      Int
-  unitPrice     Decimal   @db.Decimal(10, 2) @map("unit_price")
-  subtotal      Decimal   @db.Decimal(10, 2)
-  createdAt     DateTime  @default(now()) @map("created_at")
-  
-  order         Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  ticket        Ticket    @relation(fields: [ticketId], references: [id])
-  destination   TouristDestination @relation(fields: [destinationId], references: [id])
-  eTickets      ETicket[]
-  
-  @@map("order_items")
-}
-
-model PaymentTransaction {
-  id              String    @id @default(cuid())
-  orderId         String    @unique @map("order_id")
-  xenditPaymentId String?   @map("xendit_payment_id")
-  paymentUrl      String?   @map("payment_url")
-  paymentMethod   String?   @map("payment_method")
-  paymentChannel  String?   @map("payment_channel")
-  amount          Decimal   @db.Decimal(10, 2)
-  status          String?
-  callbackData    Json?     @map("callback_data")
-  createdAt       DateTime  @default(now()) @map("created_at")
-  updatedAt       DateTime  @updatedAt @map("updated_at")
-  
-  order           Order     @relation(fields: [orderId], references: [id])
-  
-  @@map("payment_transactions")
 }
 
 model Complaint {
@@ -197,19 +185,6 @@ model Complaint {
   @@map("complaints")
 }
 
-model ETicket {
-  id            String    @id @default(cuid())
-  orderItemId   String    @map("order_item_id")
-  ticketCode    String    @unique @map("ticket_code")
-  qrCode        String?   @map("qr_code")
-  status        ETicketStatus @default(ACTIVE)
-  usedAt        DateTime? @map("used_at")
-  createdAt     DateTime  @default(now()) @map("created_at")
-  
-  orderItem     OrderItem @relation(fields: [orderItemId], references: [id])
-  
-  @@map("e_tickets")
-}
 
 model DestinationReview {
   id            String    @id @default(cuid())
@@ -225,47 +200,6 @@ model DestinationReview {
   @@map("destination_reviews")
 }
 
-// GIS Related Tables
-
-model TransportationType {
-  id            String    @id @default(cuid())
-  name          String
-  nameId        String?   @map("name_id")
-  icon          String?
-  color         String?
-  createdAt     DateTime  @default(now()) @map("created_at")
-  
-  transportationPoints TransportationPoint[]
-  
-  @@map("transportation_types")
-}
-
-model TransportationPoint {
-  id                  String    @id @default(cuid())
-  transportationTypeId String    @map("transportation_type_id")
-  name                String
-  address             String?
-  latitude            Decimal?  @db.Decimal(10, 8)
-  longitude           Decimal?  @db.Decimal(11, 8)
-  createdAt           DateTime  @default(now()) @map("created_at")
-  
-  transportationType  TransportationType @relation(fields: [transportationTypeId], references: [id])
-  
-  @@map("transportation_points")
-}
-
-model District {
-  id                String    @id @default(cuid())
-  name              String
-  city              String?
-  province          String?
-  polygonCoordinates Json?    @map("polygon_coordinates")
-  centerLatitude    Decimal?  @db.Decimal(10, 8) @map("center_latitude")
-  centerLongitude   Decimal?  @db.Decimal(11, 8) @map("center_longitude")
-  createdAt         DateTime  @default(now()) @map("created_at")
-  
-  @@map("districts")
-}
 
 // Enums
 enum Role {
@@ -301,14 +235,6 @@ enum TicketStatus {
   UNAVAILABLE   @map("unavailable")
 }
 
-enum OrderStatus {
-  PENDING       @map("pending")
-  WAITING_PAYMENT @map("waiting_payment")
-  PAID          @map("paid")
-  CANCELLED     @map("cancelled")
-  REFUNDED      @map("refunded")
-}
-
 enum ComplaintStatus {
   NEW           @map("new")
   IN_PROGRESS   @map("in_progress")
@@ -316,11 +242,6 @@ enum ComplaintStatus {
   REJECTED      @map("rejected")
 }
 
-enum ETicketStatus {
-  ACTIVE        @map("active")
-  USED          @map("used")
-  EXPIRED       @map("expired")
-}
 
 model Session {
   id           String   @id @default(cuid())
@@ -333,3 +254,4 @@ model Session {
   
   @@map("sessions")
 }
+

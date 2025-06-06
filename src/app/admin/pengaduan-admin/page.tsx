@@ -44,10 +44,11 @@ function ComplaintList() {
   const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
-    fetch("/api/admin/complaints", { credentials: "include" })
+    fetch("/api/complaints", { credentials: "include" })
       .then(res => res.json())
       .then(data => {
-        setComplaints(data.complaints || []);
+        const arr = Array.isArray(data.complaints) ? data.complaints : (Array.isArray(data.data) ? data.data : []);
+        setComplaints(arr);
         setLoading(false);
       });
   }, []);
@@ -63,7 +64,7 @@ function ComplaintList() {
     if (!selected) return;
     setSaving(true);
     setAlertMsg(null);
-    const res = await fetch("/api/admin/complaints", {
+    const res = await fetch("/api/complaints", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
@@ -82,7 +83,7 @@ function ComplaintList() {
   const handleDelete = async (id: string) => {
     if (!window.confirm("Yakin ingin menghapus pengaduan ini?")) return;
     setDeleting(true);
-    const res = await fetch(`/api/admin/complaints?id=${id}`, {
+    const res = await fetch(`/api/complaints?id=${id}`, {
       method: "DELETE",
       credentials: "include",
     });

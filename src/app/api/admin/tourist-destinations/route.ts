@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { cloudinary } from "@/lib/cloudinary";
+import { getAdminFromToken } from "@/lib/auth";
+import { successResponse, errorResponse, unauthorizedResponse, serverErrorResponse, validateRequiredFields } from "@/lib/api-utils";
 
 // GET /api/admin/tourist-destinations
 export async function GET(req: Request) {
@@ -10,67 +12,84 @@ export async function GET(req: Request) {
 
         const destinations = await prisma.touristDestination.findMany({
             where: {
-                ...(categoryId && { categoryId }), // Add categoryId filter if it exists
-            },
-            orderBy: {
-                createdAt: "desc",
+                ...(categoryId && { categoryId }),
             },
             include: {
                 category: true,
+                reviews: {
+                    select: {
+                        rating: true,
+                    }
+                }
             },
         });
 
+        // Calculate average rating for each destination
+        const destinationsWithAvgRating = destinations.map(dest => {
+            const totalRating = dest.reviews.reduce((sum, review) => sum + (review.rating || 0), 0);
+            const averageRating = dest.reviews.length > 0 ? totalRating / dest.reviews.length : 0;
+            const { reviews, ...rest } = dest;
+            return {
+                ...rest,
+                averageRating: parseFloat(averageRating.toFixed(1)),
+            };
+        });
 
-        return NextResponse.json( destinations);
+        // Sort destinations by average rating in descending order
+        destinationsWithAvgRating.sort((a, b) => (b.averageRating || 0) - (a.averageRating || 0));
+
+        return successResponse(destinationsWithAvgRating);
     } catch (error) {
         console.error("[TOURIST_DESTINATIONS_GET]", error);
-        return new NextResponse("Internal error", { status: 500 });
+        return serverErrorResponse();
     }
 }
 
 export async function POST(req: Request) {
     try {
-        const formData = await req.formData();
-        const name = formData.get("name") as string;
-        const description = formData.get("description") as string;
-        const address = formData.get("address") as string;
-        const categoryName = formData.get("categoryName") as string;
-        const latitude = formData.get("latitude") as string;
-        const longitude = formData.get("longitude") as string;
-        const openingTime = formData.get("openingTime") as string;
-        const closingTime = formData.get("closingTime") as string;
-        const imageFile = formData.get("thumbnail") as File;
-
-        if (!name) {
-            return new NextResponse("Name is required", { status: 400 });
+        const admin = await getAdminFromToken();
+        if (!admin) {
+            return unauthorizedResponse();
         }
 
-        if (!categoryName) {
-            return new NextResponse("Category name is required", { status: 400 });
+        const formData = await req.formData();
+        const data = {
+            name: formData.get("name") as string,
+            description: formData.get("description") as string,
+            address: formData.get("address") as string,
+            categoryName: formData.get("categoryName") as string,
+            latitude: formData.get("latitude") as string,
+            longitude: formData.get("longitude") as string,
+            openingTime: formData.get("openingTime") as string,
+            closingTime: formData.get("closingTime") as string,
+            imageFile: formData.get("thumbnail") as File,
+        };
+
+        // Validate required fields
+        const requiredFields = ["name", "categoryName"];
+        const validationError = validateRequiredFields(data, requiredFields);
+        if (validationError) {
+            return errorResponse(validationError);
         }
 
         // Find category by name
         const category = await prisma.destinationCategory.findFirst({
-            where: {
-                name: categoryName
-            }
+            where: { name: data.categoryName }
         });
 
         if (!category) {
-            return new NextResponse("Category not found", { status: 404 });
+            return errorResponse("Category not found", 404);
         }
 
         let thumbnailUrl = null;
 
         // Handle image upload if file exists
-        if (imageFile && imageFile.size > 0) {
+        if (data.imageFile && data.imageFile.size > 0) {
             try {
-                // Convert file to base64
-                const bytes = await imageFile.arrayBuffer();
+                const bytes = await data.imageFile.arrayBuffer();
                 const buffer = Buffer.from(bytes);
-                const fileStr = `data:${imageFile.type};base64,${buffer.toString('base64')}`;
+                const fileStr = `data:${data.imageFile.type};base64,${buffer.toString('base64')}`;
 
-                // Upload to Cloudinary
                 const result = await cloudinary.uploader.upload(fileStr, {
                     folder: "tourist-destinations",
                     resource_type: "auto",
@@ -83,22 +102,22 @@ export async function POST(req: Request) {
                 thumbnailUrl = result.secure_url;
             } catch (error) {
                 console.error("[THUMBNAIL_UPLOAD_ERROR]", error);
-                return new NextResponse("Failed to upload thumbnail", { status: 500 });
+                return errorResponse("Failed to upload thumbnail", 500);
             }
         }
 
         // Create tourist destination
         const destination = await prisma.touristDestination.create({
             data: {
-                name,
-                description,
-                address,
+                name: data.name,
+                description: data.description,
+                address: data.address,
                 thumbnailUrl,
                 categoryId: category.id,
-                latitude: latitude ? parseFloat(latitude) : null,
-                longitude: longitude ? parseFloat(longitude) : null,
-                openingTime: openingTime ? new Date(`1970-01-01T${openingTime}`) : null,
-                closingTime: closingTime ? new Date(`1970-01-01T${closingTime}`) : null,
+                latitude: data.latitude ? parseFloat(data.latitude) : null,
+                longitude: data.longitude ? parseFloat(data.longitude) : null,
+                openingTime: data.openingTime ? new Date(`1970-01-01T${data.openingTime}`) : null,
+                closingTime: data.closingTime ? new Date(`1970-01-01T${data.closingTime}`) : null,
                 status: "ACTIVE"
             },
             include: {
@@ -106,10 +125,10 @@ export async function POST(req: Request) {
             }
         });
 
-        return NextResponse.json(destination);
+        return successResponse(destination, "Tourist destination created successfully");
     } catch (error) {
         console.error("[TOURIST_DESTINATIONS_POST]", error);
-        return new NextResponse("Internal error", { status: 500 });
+        return serverErrorResponse();
     }
 }
 
