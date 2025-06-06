@@ -1,12 +1,9 @@
 "use client";
 import React, { useEffect, useState, useRef } from "react";
-import dynamic from "next/dynamic";
 import Navbar from "@/components/navbar/navbar";
-import Footer from "@/components/footer/footer";
 import Map, { Marker, Source, Layer, Popup } from "react-map-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { FaMapMarkerAlt, FaPlus, FaMinus, FaCrosshairs, FaLayerGroup, FaLocationArrow } from "react-icons/fa";
-import { useSearchParams } from "next/navigation";
 
 interface Category {
   id: string;
@@ -27,7 +24,8 @@ interface TouristDestination {
 const fetchDestinations = async (): Promise<TouristDestination[]> => {
   const res = await fetch("/api/admin/tourist-destinations");
   if (!res.ok) throw new Error("Failed to fetch destinations");
-  return res.json();
+  const json = await res.json();
+  return Array.isArray(json.data) ? json.data : [];
 };
 
 const fetchCategories = async (): Promise<Category[]> => {
@@ -69,6 +67,13 @@ export default function TourismMapPage() {
   const [nearbyLoading, setNearbyLoading] = useState(false);
   const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
   const focusId = searchParams ? searchParams.get('focus') : null;
+  const [showAdministrativeLayer, setShowAdministrativeLayer] = useState(false);
+  const [selectedGeoJSONLayers, setSelectedGeoJSONLayers] = useState<string[]>([]);
+  const [geoJSONMenuOpen, setGeoJSONMenuOpen] = useState(false);
+  const [administrativeGeoJSON, setAdministrativeGeoJSON] = useState<any>(null);
+  const [kecamatanGeoJSON, setKecamatanGeoJSON] = useState<any>(null);
+  const [selectedKecamatan, setSelectedKecamatan] = useState<any>(null);
+  const [kecamatanPopup, setKecamatanPopup] = useState<{ longitude: number; latitude: number } | null>(null);
 
   // Auto-center & open popup jika ada focusId
   useEffect(() => {
@@ -96,6 +101,27 @@ export default function TourismMapPage() {
       .finally(() => setLoading(false));
   }, []);
 
+  useEffect(() => {
+    // Load GeoJSON batas administrasi
+    Promise.all([
+      fetch('/GeoJSON/batas_kabupaten.geojson').then(res => res.json()),
+      fetch('/GeoJSON/batas_kecamatan.geojson').then(res => res.json())
+    ]).then(([kabupatenData, kecamatanData]) => {
+      setAdministrativeGeoJSON(kabupatenData);
+      setKecamatanGeoJSON(kecamatanData);
+      console.log('Loaded Kabupaten:', kabupatenData);
+      console.log('Loaded Kecamatan:', kecamatanData);
+      if (!kabupatenData || kabupatenData.type !== 'FeatureCollection' || !Array.isArray(kabupatenData.features)) {
+        console.error('GeoJSON Kabupaten tidak valid:', kabupatenData);
+      }
+      if (!kecamatanData || kecamatanData.type !== 'FeatureCollection' || !Array.isArray(kecamatanData.features)) {
+        console.error('GeoJSON Kecamatan tidak valid:', kecamatanData);
+      }
+    }).catch(error => {
+      console.error('Error loading GeoJSON:', error);
+    });
+  }, []);
+
   const filteredDestinations = selectedCategory
     ? destinations.filter((d) => d.category?.id === selectedCategory)
     : destinations;
@@ -107,7 +133,11 @@ export default function TourismMapPage() {
   // Helper: get current location
   const getCurrentLocation = async () => {
     return new Promise<{ lat: number, lng: number }>((resolve, reject) => {
-      if (!navigator.geolocation) return reject("Geolocation not supported");
+      if (!navigator.geolocation) {
+        reject("Geolocation tidak didukung browser Anda");
+        alert("Geolocation tidak didukung browser Anda");
+        return;
+      }
       navigator.geolocation.getCurrentPosition(
         pos => {
           const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
@@ -115,7 +145,14 @@ export default function TourismMapPage() {
           setViewport(v => ({ ...v, latitude: loc.lat, longitude: loc.lng, zoom: 15 }));
           resolve(loc);
         },
-        err => reject(err)
+        err => {
+          let msg = "Gagal mendapatkan lokasi Anda";
+          if (err.code === 1) msg = "Akses lokasi ditolak. Silakan izinkan akses lokasi di browser Anda.";
+          else if (err.code === 2) msg = "Lokasi tidak tersedia.";
+          else if (err.code === 3) msg = "Timeout saat mengambil lokasi.";
+          alert(msg);
+          reject(msg);
+        }
       );
     });
   };
@@ -206,6 +243,14 @@ export default function TourismMapPage() {
       alert("Gagal mengambil rute");
     }
     setRouteLoading(false);
+  };
+
+  const toggleGeoJSONLayer = (layer: string) => {
+    setSelectedGeoJSONLayers((prev) =>
+      prev.includes(layer)
+        ? prev.filter((l) => l !== layer)
+        : [...prev, layer]
+    );
   };
 
   return (
@@ -368,6 +413,66 @@ export default function TourismMapPage() {
           }}
           style={{ width: "100vw", height: "100vh" }}
           mapStyle={mapStyle}
+          onClick={(e) => {
+            if (
+              kecamatanGeoJSON &&
+              mapRef.current &&
+              selectedGeoJSONLayers.includes('kecamatan')
+            ) {
+              try {
+                if (mapRef.current.getLayer && mapRef.current.getLayer('batas-kecamatan-fill')) {
+                  const features = mapRef.current.queryRenderedFeatures(e.point, {
+                    layers: ['batas-kecamatan-fill']
+                  });
+                  if (features && features.length > 0) {
+                    const feature = features[0];
+                    setSelectedKecamatan(feature.properties);
+                    setKecamatanPopup({
+                      longitude: e.lngLat.lng,
+                      latitude: e.lngLat.lat
+                    });
+                  } else {
+                    setKecamatanPopup(null);
+                    setSelectedKecamatan(null);
+                  }
+                } else {
+                  setKecamatanPopup(null);
+                  setSelectedKecamatan(null);
+                }
+              } catch (err) {
+                // abaikan error
+              }
+            } else {
+              setKecamatanPopup(null);
+              setSelectedKecamatan(null);
+            }
+          }}
+          onMouseMove={(e) => {
+            if (
+              kecamatanGeoJSON &&
+              mapRef.current &&
+              selectedGeoJSONLayers.includes('kecamatan')
+            ) {
+              try {
+                if (mapRef.current.getLayer && mapRef.current.getLayer('batas-kecamatan-fill')) {
+                  const features = mapRef.current.queryRenderedFeatures(e.point, {
+                    layers: ['batas-kecamatan-fill']
+                  });
+                  if (features && features.length > 0) {
+                    mapRef.current.getCanvas().style.cursor = 'pointer';
+                  } else {
+                    mapRef.current.getCanvas().style.cursor = '';
+                  }
+                } else {
+                  mapRef.current.getCanvas().style.cursor = '';
+                }
+              } catch (err) {
+                mapRef.current.getCanvas().style.cursor = '';
+              }
+            } else if (mapRef.current) {
+              mapRef.current.getCanvas().style.cursor = '';
+            }
+          }}
         >
           {/* Polyline rute dengan desain lebih menarik */}
           {routeGeoJSON && (
@@ -382,6 +487,112 @@ export default function TourismMapPage() {
                 }}
               />
             </Source>
+          )}
+
+          {/* Layer GeoJSON Batas Administrasi */}
+          {selectedGeoJSONLayers.includes('kabupaten')
+            && administrativeGeoJSON
+            && administrativeGeoJSON.type === 'FeatureCollection'
+            && Array.isArray(administrativeGeoJSON.features)
+            && administrativeGeoJSON.features.length > 0 && (
+            <Source id="batas-kabupaten" type="geojson" data={administrativeGeoJSON}>
+              <Layer
+                id="batas-kabupaten-fill"
+                type="fill"
+                paint={{
+                  "fill-color": "#FF0000",
+                  "fill-opacity": 0.1
+                }}
+                filter={["==", "$type", "Polygon"]}
+              />
+              <Layer
+                id="batas-kabupaten-line"
+                type="line"
+                paint={{
+                  "line-color": "#FF0000",
+                  "line-width": 1.0,
+                  "line-opacity": 0.7
+                }}
+              />
+            </Source>
+          )}
+
+          {/* Layer GeoJSON Batas Kecamatan */}
+          {selectedGeoJSONLayers.includes('kecamatan')
+            && kecamatanGeoJSON
+            && kecamatanGeoJSON.type === 'FeatureCollection'
+            && Array.isArray(kecamatanGeoJSON.features)
+            && kecamatanGeoJSON.features.length > 0 && (
+            <Source id="batas-kecamatan" type="geojson" data={kecamatanGeoJSON}>
+              <Layer
+                id="batas-kecamatan-fill"
+                type="fill"
+                paint={{
+                  "fill-color": "#0000FF",
+                  "fill-opacity": 0.05
+                }}
+                filter={["==", "$type", "Polygon"]}
+              />
+              <Layer
+                id="batas-kecamatan-line"
+                type="line"
+                paint={{
+                  "line-color": "#0000FF",
+                  "line-width": 1.0,
+                  "line-opacity": 0.3
+                }}
+              />
+            </Source>
+          )}
+
+          {/* Popup untuk data Kecamatan */}
+          {kecamatanPopup && selectedKecamatan && (
+            <Popup
+              longitude={kecamatanPopup.longitude}
+              latitude={kecamatanPopup.latitude}
+              anchor="top"
+              closeOnClick={false}
+              onClose={() => {
+                setKecamatanPopup(null);
+                setSelectedKecamatan(null);
+              }}
+              className="z-50"
+              closeButton={false}
+            >
+              <div className="relative min-w-[220px] max-w-[280px] rounded-2xl shadow-xl bg-white/90 p-3 flex flex-col items-center border-t-4 border-blue-400">
+                <button
+                  onClick={() => {
+                    setKecamatanPopup(null);
+                    setSelectedKecamatan(null);
+                  }}
+                  className="absolute top-2 right-2 w-8 h-8 flex items-center justify-center rounded-full bg-white border border-gray-300 text-xl text-gray-700 hover:bg-gray-200 hover:text-black transition z-10 shadow"
+                  aria-label="Tutup"
+                >
+                  ×
+                </button>
+                <div className="font-bold text-lg text-center mb-1 text-gray-800 flex items-center gap-2">
+                  <span>🗺️ {selectedKecamatan.nama_kecamatan || 'Kecamatan'}</span>
+                </div>
+                <div className="w-full space-y-2 mt-2">
+                  {Object.entries(selectedKecamatan).map(([key, value]) => {
+                    // Skip if value is null or empty
+                    if (!value) return null;
+                    // Format the key to be more readable
+                    const formattedKey = key
+                      .replace(/_/g, ' ')
+                      .split(' ')
+                      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                      .join(' ');
+                    return (
+                      <div key={key} className="flex flex-col bg-blue-50 rounded-lg p-2">
+                        <span className="text-xs text-blue-800 font-semibold">{formattedKey}</span>
+                        <span className="text-sm text-gray-700">{String(value)}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </Popup>
           )}
 
           {/* Marker: jika nearbyMenuOpen, tampilkan hanya nearbyList, jika tidak, filteredDestinations */}
@@ -533,32 +744,34 @@ export default function TourismMapPage() {
         </Map>
         {/* Dropup filter kategori pojok kanan bawah */}
         <div className="fixed bottom-6 right-6 z-30 flex flex-col items-end">
-          <button
-            className="w-14 h-14 rounded-full bg-[#FFD600] shadow-lg flex items-center justify-center text-2xl text-black border-2 border-white hover:bg-yellow-400 transition"
-            onClick={() => setDropdownOpen((v) => !v)}
-            aria-label="Filter Kategori"
-          >
-            <FaMapMarkerAlt />
-          </button>
-          {dropdownOpen && (
-            <div className="mb-2 w-48 bg-white rounded-xl shadow-lg border border-gray-100 max-h-72 overflow-y-auto animate-fade-in-up">
-              <button
-                className={`w-full text-left px-4 py-2 hover:bg-[#FFD600] hover:text-black rounded-t-xl ${!selectedCategory ? "bg-[#FFD600] text-black" : "text-gray-700"}`}
-                onClick={() => { setSelectedCategory(null); setDropdownOpen(false); }}
-              >
-                Semua Kategori
-              </button>
-              {categories.map((cat) => (
+          <div className="relative">
+            <button
+              className="w-14 h-14 rounded-full bg-[#FFD600] shadow-lg flex items-center justify-center text-2xl text-black border-2 border-white hover:bg-yellow-400 transition"
+              onClick={() => setDropdownOpen((v) => !v)}
+              aria-label="Filter Kategori"
+            >
+              <FaMapMarkerAlt />
+            </button>
+            {dropdownOpen && (
+              <div className="absolute right-0 bottom-16 w-48 bg-white rounded-xl shadow-lg border border-gray-100 max-h-72 overflow-y-auto animate-fade-in-up">
                 <button
-                  key={cat.id}
-                  className={`w-full text-left px-4 py-2 hover:bg-[#FFD600] hover:text-black ${selectedCategory === cat.id ? "bg-[#FFD600] text-black" : "text-gray-700"}`}
-                  onClick={() => { setSelectedCategory(cat.id); setDropdownOpen(false); }}
+                  className={`w-full text-left px-4 py-2 hover:bg-[#FFD600] hover:text-black rounded-t-xl ${!selectedCategory ? "bg-[#FFD600] text-black" : "text-gray-700"}`}
+                  onClick={() => { setSelectedCategory(null); setDropdownOpen(false); }}
                 >
-                  {cat.name}
+                  Semua Kategori
                 </button>
-              ))}
-            </div>
-          )}
+                {categories.map((cat) => (
+                  <button
+                    key={cat.id}
+                    className={`w-full text-left px-4 py-2 hover:bg-[#FFD600] hover:text-black ${selectedCategory === cat.id ? "bg-[#FFD600] text-black" : "text-gray-700"}`}
+                    onClick={() => { setSelectedCategory(cat.id); setDropdownOpen(false); }}
+                  >
+                    {cat.name}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
         {/* Info rute dengan desain lebih menarik */}
         {routeInfo && (
@@ -609,6 +822,38 @@ export default function TourismMapPage() {
             </div>
           </div>
         )}
+        {/* Tombol layer GeoJSON di kanan bawah */}
+        <div className="fixed bottom-24 right-6 z-30 flex flex-col items-end">
+          <button
+            className={`w-14 h-14 rounded-full shadow-lg flex items-center justify-center text-2xl border-2 transition ${selectedGeoJSONLayers.length > 0 ? 'bg-green-500 text-white border-green-600' : 'bg-white text-green-700 border-green-300 hover:bg-green-100'}`}
+            onClick={() => setGeoJSONMenuOpen(v => !v)}
+            aria-label="Tampilkan Layer GeoJSON"
+          >
+            🗺️
+          </button>
+          {geoJSONMenuOpen && (
+            <div className="mb-2 w-48 bg-white rounded-xl shadow-lg border border-gray-100 max-h-72 overflow-y-auto animate-fade-in-up">
+              <label className="flex items-center px-4 py-2 hover:bg-green-100 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={selectedGeoJSONLayers.includes('kabupaten')}
+                  onChange={() => toggleGeoJSONLayer('kabupaten')}
+                  className="mr-2"
+                />
+                Batas Kabupaten
+              </label>
+              <label className="flex items-center px-4 py-2 hover:bg-green-100 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={selectedGeoJSONLayers.includes('kecamatan')}
+                  onChange={() => toggleGeoJSONLayer('kecamatan')}
+                  className="mr-2"
+                />
+                Batas Kecamatan
+              </label>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

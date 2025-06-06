@@ -11,12 +11,12 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 const navLinks = [
   { name: "Beranda", href: "/consumer/beranda", active: true },
-  { name: "Tumbas Wisata", href: "/consumer/tumbas-wisata" },
+  { name: "Katalog Wisata", href: "/consumer/tumbas-wisata" },
   { name: "Layanan", dropdown: true, items: [
-    { name: "E-Ticketing", href: "/consumer/e-ticketing" },
+    { name: "Tumbas Wisata", href: "/consumer/e-ticket-list" },
     { name: "Pengaduan", href: "/consumer/pengaduan" },
   ] },
-  { name: "Story Map", href: "#" },
+  { name: "Story Map", href: "/consumer/story-map" },
   { name: "Tourism Map", href: "/consumer/tourism-map" },
 ];
 

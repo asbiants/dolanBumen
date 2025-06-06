@@ -91,15 +91,12 @@ export async function DELETE(
   request: Request,
   { params }: { params: { categoryId: string } }
 ) {
-  
-
   try {
-
-  const categoryId = await params.categoryId;
-  
-  if (!categoryId) {
-    return new NextResponse("Category ID is required", { status: 400 });
-  }
+    const categoryId = params.categoryId;
+    
+    if (!categoryId) {
+      return new NextResponse("Category ID is required", { status: 400 });
+    }
     // Get category data before deleting
     const category = await prisma.destinationCategory.findUnique({
       where: { id: categoryId }

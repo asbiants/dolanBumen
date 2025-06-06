@@ -140,7 +140,11 @@ export default function AdminLoginPage() {
                 )}
               />
 
-              <Button type="submit" className="w-full" disabled={isLoading}>
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={isLoading}
+              >
                 {isLoading ? (
                   <>
                     <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
@@ -149,6 +153,14 @@ export default function AdminLoginPage() {
                 ) : (
                   "Masuk"
                 )}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full mt-2"
+                onClick={() => router.push('/consumer/login')}
+              >
+                Login sebagai User
               </Button>
             </form>
           </Form>

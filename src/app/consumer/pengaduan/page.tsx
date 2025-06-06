@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import { User, MapPin, Mail, Calendar, Phone, Upload, FileText } from "lucide-react";
 import Navbar from '@/components/navbar/navbar';
 import Footer from '@/components/footer/footer';
+import Loading from '@/components/loading/loading';
 
 const Map = dynamic(() => import("react-map-gl"), { ssr: false });
 
@@ -14,10 +15,21 @@ const jenisOptions = [
   { value: "KECELAKAAN", label: "Kecelakaan Wisata", icon: <FileText className="w-4 h-4 mr-1" /> },
 ];
 
+const getBase64 = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = error => reject(error);
+  });
+};
+
 export default function PengaduanForm() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [loadingUser, setLoadingUser] = useState(true);
+  const [loadingDestinations, setLoadingDestinations] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [destinations, setDestinations] = useState<any[]>([]);
   const [form, setForm] = useState({
     nama: "",
@@ -34,27 +46,63 @@ export default function PengaduanForm() {
   const [mapPos, setMapPos] = useState({ lat: -7.6778, lng: 109.6536 });
   const [loading, setLoading] = useState(false);
   const [alert, setAlert] = useState<{ type: 'success' | 'error', message: string } | null>(null);
+  const [isPageLoading, setIsPageLoading] = useState(true);
+  const [mapboxToken, setMapboxToken] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch("/api/auth/consumer/me").then(async r => {
-      if (!r.ok) {
-        router.replace("/consumer/login");
-        return;
+    const fetchData = async () => {
+      try {
+        setIsPageLoading(true);
+        const [userResponse, destinationsResponse] = await Promise.all([
+          fetch("/api/auth/consumer/me"),
+          fetch("/api/admin/tourist-destinations")
+        ]);
+
+        if (!userResponse.ok) {
+          router.replace("/consumer/login");
+          return;
+        }
+
+        const userData = await userResponse.json();
+        setUser(userData.user);
+        setForm(f => ({ ...f, nama: userData.user?.name || "", email: userData.user?.email || "" }));
+        
+        if (destinationsResponse.ok) {
+          const destinationsData = await destinationsResponse.json();
+          setDestinations(Array.isArray(destinationsData.data) ? destinationsData.data : []);
+        }
+
+        const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+        setMapboxToken(mapboxToken ?? null);
+      } catch (err) {
+        setError('Terjadi kesalahan saat memuat data');
+        console.error('Error fetching data:', err);
+      } finally {
+        setLoadingUser(false);
+        setLoadingDestinations(false);
+        setIsPageLoading(false);
       }
-      const data = await r.json();
-      setUser(data.user);
-      setForm(f => ({ ...f, nama: data.user?.name || "", email: data.user?.email || "" }));
-      setLoadingUser(false);
-    });
-    fetch("/api/admin/tourist-destinations").then(async r => {
-      if (r.ok) {
-        const data = await r.json();
-        setDestinations(data);
-      }
-    });
+    };
+
+    fetchData();
   }, [router]);
 
-  if (loadingUser) return <div>Loading...</div>;
+  if (isPageLoading) return <Loading message="Memuat halaman..." />;
+  if (loadingUser) return <Loading message="Memuat data pengguna..." />;
+  if (error) return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="text-center text-red-500">
+        <p>{error}</p>
+        <button 
+          onClick={() => window.location.reload()} 
+          className="mt-4 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
+        >
+          Coba Lagi
+        </button>
+      </div>
+    </div>
+  );
+
   if (!user) return null;
 
   const handleChange = (e: any) => {
@@ -82,9 +130,20 @@ export default function PengaduanForm() {
     Object.entries(form).forEach(([k, v]) => {
       if (v) formData.append(k, v as any);
     });
-    const res = await fetch("/api/consumer/pengaduan", {
+    const res = await fetch("/api/complaints", {
       method: "POST",
-      body: formData
+      body: JSON.stringify({
+        destinationId: form.destinationId,
+        jenis: form.jenis,
+        narahubung: form.narahubung,
+        deskripsi: form.deskripsi,
+        longitude: form.longitude.toString(),
+        latitude: form.latitude.toString(),
+        attachment: form.file ? await getBase64(form.file) : undefined
+      }),
+      headers: {
+        'Content-Type': 'application/json'
+      }
     });
     setLoading(false);
     if (res.ok) {
@@ -104,7 +163,7 @@ export default function PengaduanForm() {
   return (
     <>
       <Navbar />
-      <div className="min-h-screen bg-[#f7f7f7] py-10">
+      <div className="min-h-screen py-10">
         <div className="max-w-2xl mx-auto bg-white rounded-2xl shadow-lg p-8 flex flex-col gap-6">
           <h1 className="text-2xl font-bold text-center mb-2">Layanan Pelaporan</h1>
           <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
@@ -165,13 +224,17 @@ export default function PengaduanForm() {
             <div>
               <label className="font-semibold flex items-center gap-2"><MapPin className="w-4 h-4" />Lokasi Details</label>
               <div className="rounded-xl overflow-hidden mb-2" style={{height: 200}}>
-                <Map
-                  mapboxAccessToken={process.env.NEXT_PUBLIC_MAPBOX_TOKEN}
-                  initialViewState={{ latitude: mapPos.lat, longitude: mapPos.lng, zoom: 11 }}
-                  style={{ width: "100%", height: 200 }}
-                  mapStyle="mapbox://styles/mapbox/streets-v11"
-                  onClick={handleMapClick}
-                />
+                {mapboxToken ? (
+                  <Map
+                    mapboxAccessToken={mapboxToken}
+                    initialViewState={{ latitude: mapPos.lat, longitude: mapPos.lng, zoom: 11 }}
+                    style={{ width: "100%", height: 200 }}
+                    mapStyle="mapbox://styles/mapbox/streets-v11"
+                    onClick={handleMapClick}
+                  />
+                ) : (
+                  <div className="text-red-500 text-center py-8">Mapbox token belum diatur. Silakan cek file .env.local Anda.</div>
+                )}
               </div>
               <div className="flex gap-2">
                 <input type="text" name="longitude" value={form.longitude} placeholder="Longitude" readOnly className="w-1/2 rounded-lg border px-3 py-2 bg-gray-100" />

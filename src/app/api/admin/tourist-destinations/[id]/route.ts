@@ -129,8 +129,8 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
 }
 
 // GET /api/admin/tourist-destinations/[id]
-export async function GET(request: Request, { params }: { params: { id: string } }) {
-  const { id } = params;
+export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   if (!id) {
     return new NextResponse("Destination ID is required", { status: 400 });
   }
@@ -142,7 +142,13 @@ export async function GET(request: Request, { params }: { params: { id: string }
     if (!destination) {
       return new NextResponse("Destination not found", { status: 404 });
     }
-    return NextResponse.json(destination);
+    // Tambahkan field weekdayPrice dan weekendPrice dummy (karena tidak ada di DB)
+    const response = {
+      ...destination,
+      weekdayPrice: 10000,
+      weekendPrice: 15000,
+    };
+    return NextResponse.json(response);
   } catch (error) {
     console.error("[TOURIST_DESTINATIONS_GET]", error);
     return new NextResponse("Internal error", { status: 500 });

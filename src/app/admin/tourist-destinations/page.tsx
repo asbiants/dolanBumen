@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Plus, Pencil, Trash2, Upload, Eye, ImagePlus, Ticket } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -10,11 +10,12 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import Map, { Marker } from 'react-map-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { DestinationPhotosDialog } from "@/components/destination-photos-dialog";
 import { DestinationPhotos } from "@/components/destination-photos";
 import { TicketStatus } from "@prisma/client";
+import dynamic from 'next/dynamic';
+import { FaMapMarkerAlt } from 'react-icons/fa';
 
 interface Ticket {
   id: string;
@@ -44,6 +45,7 @@ interface TouristDestination {
   category: {
     id: string;
     name: string;
+    icon?: string | null;
   } | null;
   createdAt: string;
 }
@@ -51,6 +53,7 @@ interface TouristDestination {
 interface DestinationCategory {
   id: string;
   name: string;
+  icon?: string | null;
 }
 
 interface FormData {
@@ -64,6 +67,9 @@ interface FormData {
   closingTime: string;
   thumbnail: File | null;
 }
+
+const MapboxMap = dynamic(() => import('react-map-gl'), { ssr: false });
+const MapboxMarker = dynamic(() => import('react-map-gl').then(mod => mod.Marker), { ssr: false });
 
 export default function TouristDestinationsPage() {
   const [destinations, setDestinations] = useState<TouristDestination[]>([]);
@@ -88,6 +94,8 @@ export default function TouristDestinationsPage() {
     latitude: -7.7956,
     zoom: 9
   });
+  const mapRef = useRef<any>(null);
+  const [mapLoaded, setMapLoaded] = useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [viewDestination, setViewDestination] = useState<TouristDestination | null>(null);
   const [selectedDestinationForTickets, setSelectedDestinationForTickets] = useState<TouristDestination | null>(null);
@@ -97,7 +105,7 @@ export default function TouristDestinationsPage() {
   const [newTicketFormData, setNewTicketFormData] = useState({
     name: "",
     description: "",
-    ticketType: "WEEKDAY", // Default to WEEKDAY
+    ticketType: "WEEKDAY",
     price: "",
     quotaPerDay: "",
   });
@@ -113,8 +121,8 @@ export default function TouristDestinationsPage() {
     status: "",
   });
   const [isUpdatingTicket, setIsUpdatingTicket] = useState(false);
+  const [categoryFilter, setCategoryFilter] = useState("all");
 
-  // Fetch destinations and categories
   const fetchData = async () => {
     try {
       const [destinationsRes, categoriesRes] = await Promise.all([
@@ -131,7 +139,30 @@ export default function TouristDestinationsPage() {
         categoriesRes.json()
       ]);
 
-      setDestinations(destinationsData);
+      const arr = Array.isArray(destinationsData.data) ? destinationsData.data : destinationsData;
+      const categoryMap = categoriesData.reduce((map: any, cat: any) => {
+        map[cat.id] = cat;
+        return map;
+      }, {});
+
+      const parsedDestinations = arr.map((d: any) => {
+        const category = categoryMap[d.categoryId] || d.category;
+        let lat = d.latitude;
+        let lng = d.longitude;
+        if (lat && typeof lat === 'object' && typeof lat.toNumber === 'function') lat = lat.toNumber();
+        else if (typeof lat === 'string') lat = parseFloat(lat);
+        if (lng && typeof lng === 'object' && typeof lng.toNumber === 'function') lng = lng.toNumber();
+        else if (typeof lng === 'string') lng = parseFloat(lng);
+      
+        return {
+          ...d,
+          latitude: lat,
+          longitude: lng,
+          category: category
+        };
+      });
+
+      setDestinations(parsedDestinations);
       setCategories(categoriesData);
     } catch (error) {
       toast.error("Failed to fetch data");
@@ -140,11 +171,31 @@ export default function TouristDestinationsPage() {
     }
   };
 
+  const filteredDestinations = categoryFilter && categoryFilter !== "all"
+    ? destinations.filter(d => d.categoryId === categoryFilter)
+    : destinations;
+
   useEffect(() => {
     fetchData();
   }, []);
 
-  // Fetch tickets for selected destination
+  useEffect(() => {
+    if (!mapRef.current || !mapLoaded) return;
+    const valid = destinations.filter(d => d.latitude != null && d.longitude != null && !isNaN(d.latitude) && !isNaN(d.longitude));
+    if (valid.length === 0) return;
+    if (valid.length === 1) {
+      mapRef.current.flyTo({ center: [valid[0].longitude, valid[0].latitude], zoom: 13 });
+      return;
+    }
+    const lats = valid.map(d => d.latitude as number);
+    const lngs = valid.map(d => d.longitude as number);
+    const bounds: [[number, number], [number, number]] = [
+      [Math.min(...lngs), Math.min(...lats)],
+      [Math.max(...lngs), Math.max(...lats)]
+    ];
+    mapRef.current.fitBounds(bounds, { padding: 40 });
+  }, [mapLoaded, destinations]);
+
   useEffect(() => {
     if (selectedDestinationForTickets) {
       const fetchTickets = async () => {
@@ -167,11 +218,10 @@ export default function TouristDestinationsPage() {
       };
       fetchTickets();
     } else {
-        setTickets([]); // Clear tickets when dialog is closed
+        setTickets([]);
     }
   }, [selectedDestinationForTickets]);
 
-  // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -240,7 +290,6 @@ export default function TouristDestinationsPage() {
       }
 
       toast.success("Ticket added successfully");
-      // Refresh tickets list
       const updatedTicketsResponse = await fetch(
         `/api/admin/tourist-destinations/tickets?destinationId=${selectedDestinationForTickets?.id}`
       );
@@ -249,7 +298,6 @@ export default function TouristDestinationsPage() {
         setTickets(updatedTickets);
       }
 
-      // Reset form
       setNewTicketFormData({
         name: "",
         description: "",
@@ -266,7 +314,6 @@ export default function TouristDestinationsPage() {
     }
   };
 
-  // Handle edit ticket button click
   const handleEditTicket = (ticket: Ticket) => {
     setSelectedTicketForEdit(ticket);
     setEditTicketFormData({
@@ -280,7 +327,6 @@ export default function TouristDestinationsPage() {
     setIsEditTicketDialogOpen(true);
   };
 
-  // Handle update ticket form submission
   const handleUpdateTicketSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedTicketForEdit) return;
@@ -309,7 +355,6 @@ export default function TouristDestinationsPage() {
       }
 
       toast.success("Ticket updated successfully");
-      // Refresh tickets list
       const updatedTicketsResponse = await fetch(
         `/api/admin/tourist-destinations/tickets?destinationId=${selectedDestinationForTickets?.id}`
       );
@@ -327,7 +372,6 @@ export default function TouristDestinationsPage() {
     }
   };
 
-  // Handle delete ticket button click
   const handleDeleteTicket = async (ticketId: string) => {
     if (!confirm("Are you sure you want to delete this ticket?")) return;
 
@@ -345,7 +389,6 @@ export default function TouristDestinationsPage() {
       }
 
       toast.success("Ticket deleted successfully");
-      // Remove deleted ticket from state
       setTickets(tickets.filter(ticket => ticket.id !== ticketId));
 
     } catch (error) {
@@ -354,7 +397,6 @@ export default function TouristDestinationsPage() {
     }
   };
 
-  // Handle delete
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this destination?")) return;
 
@@ -375,7 +417,6 @@ export default function TouristDestinationsPage() {
     }
   };
 
-  // Handle edit
   const handleEdit = (destination: TouristDestination) => {
     setSelectedDestination(destination);
     setFormData({
@@ -392,7 +433,6 @@ export default function TouristDestinationsPage() {
     setIsDialogOpen(true);
   };
 
-  // Reset form
   const resetForm = () => {
     setSelectedDestination(null);
     setFormData({
@@ -408,14 +448,12 @@ export default function TouristDestinationsPage() {
     });
   };
 
-  // Handle file upload
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setFormData(prev => ({ ...prev, thumbnail: file }));
   };
 
-  // Handle map click
   const handleMapClick = (e: any) => {
     const { lng, lat } = e.lngLat;
     setFormData(prev => ({
@@ -425,7 +463,6 @@ export default function TouristDestinationsPage() {
     }));
   };
 
-  // Handle view
   const handleView = (destination: TouristDestination) => {
     setViewDestination(destination);
     setIsViewDialogOpen(true);
@@ -433,173 +470,236 @@ export default function TouristDestinationsPage() {
 
   return (
     <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Tourist Destinations</h1>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={resetForm}>
-              <Plus className="mr-2 h-4 w-4" />
-              Add Destination
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>
-                {selectedDestination ? "Edit Destination" : "Add New Destination"}
-              </DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="name">Name</Label>
-                  <Input
-                    id="name"
-                    value={formData.name}
-                    onChange={(e) =>
-                      setFormData({ ...formData, name: e.target.value })
-                    }
-                    required
-                  />
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+        <h1 className="text-2xl font-bold tracking-tight">Tourist Destinations</h1>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full sm:w-auto">
+          <Select
+            value={categoryFilter}
+            onValueChange={(value) => setCategoryFilter(value)}
+          >
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Filter by Category" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Categories</SelectItem>
+              {categories.map((category) => (
+                <SelectItem key={category.id} value={category.id}>
+                  {category.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button onClick={resetForm} className="w-full sm:w-auto">
+                <Plus className="mr-2 h-4 w-4" />
+                Add Destination
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>
+                  {selectedDestination ? "Edit Destination" : "Add New Destination"}
+                </DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="name">Name</Label>
+                    <Input
+                      id="name"
+                      value={formData.name}
+                      onChange={(e) =>
+                        setFormData({ ...formData, name: e.target.value })
+                      }
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="categoryName">Category</Label>
+                    <Select
+                      value={formData.categoryName}
+                      onValueChange={(value) =>
+                        setFormData({ ...formData, categoryName: value })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {categories.map((category) => (
+                          <SelectItem key={category.id} value={category.name}>
+                            {category.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
+
                 <div>
-                  <Label htmlFor="categoryName">Category</Label>
-                  <Select
-                    value={formData.categoryName}
-                    onValueChange={(value) =>
-                      setFormData({ ...formData, categoryName: value })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {categories.map((category) => (
-                        <SelectItem key={category.id} value={category.name}>
-                          {category.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div>
-                <Label htmlFor="description">Description</Label>
-                <Textarea
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) =>
-                    setFormData({ ...formData, description: e.target.value })
-                  }
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="address">Address</Label>
-                <Input
-                  id="address"
-                  value={formData.address}
-                  onChange={(e) =>
-                    setFormData({ ...formData, address: e.target.value })
-                  }
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="openingTime">Opening Time</Label>
-                  <Input
-                    id="openingTime"
-                    type="time"
-                    value={formData.openingTime}
+                  <Label htmlFor="description">Description</Label>
+                  <Textarea
+                    id="description"
+                    value={formData.description}
                     onChange={(e) =>
-                      setFormData({ ...formData, openingTime: e.target.value })
+                      setFormData({ ...formData, description: e.target.value })
                     }
                   />
                 </div>
+
                 <div>
-                  <Label htmlFor="closingTime">Closing Time</Label>
+                  <Label htmlFor="address">Address</Label>
                   <Input
-                    id="closingTime"
-                    type="time"
-                    value={formData.closingTime}
+                    id="address"
+                    value={formData.address}
                     onChange={(e) =>
-                      setFormData({ ...formData, closingTime: e.target.value })
+                      setFormData({ ...formData, address: e.target.value })
                     }
                   />
                 </div>
-              </div>
 
-              <div>
-                <Label>Location</Label>
-                <div className="h-[300px] rounded-lg overflow-hidden">
-                  <Map
-                    {...viewState}
-                    onMove={evt => setViewState(evt.viewState)}
-                    onClick={handleMapClick}
-                    mapboxAccessToken={process.env.NEXT_PUBLIC_MAPBOX_TOKEN}
-                    mapStyle="mapbox://styles/mapbox/streets-v12"
-                  >
-                    {formData.latitude && formData.longitude && (
-                      <Marker
-                        longitude={parseFloat(formData.longitude)}
-                        latitude={parseFloat(formData.latitude)}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="openingTime">Opening Time</Label>
+                    <Input
+                      id="openingTime"
+                      type="time"
+                      value={formData.openingTime}
+                      onChange={(e) =>
+                        setFormData({ ...formData, openingTime: e.target.value })
+                      }
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="closingTime">Closing Time</Label>
+                    <Input
+                      id="closingTime"
+                      type="time"
+                      value={formData.closingTime}
+                      onChange={(e) =>
+                        setFormData({ ...formData, closingTime: e.target.value })
+                      }
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <Label>Location</Label>
+                  <p className="text-sm text-gray-500 mb-2">Click on the map below to pick a location.</p>
+                  <div className="h-[300px] rounded-lg overflow-hidden">
+                    <MapboxMap
+                      mapboxAccessToken={process.env.NEXT_PUBLIC_MAPBOX_TOKEN}
+                      initialViewState={{
+                        longitude: parseFloat(formData.longitude) || 110.3695,
+                        latitude: parseFloat(formData.latitude) || -7.7956,
+                        zoom: 9
+                      }}
+                      style={{ width: "100%", height: "100%" }}
+                      mapStyle="mapbox://styles/mapbox/streets-v12"
+                      onClick={handleMapClick}
+                    >
+                      {formData.latitude && formData.longitude && !isNaN(parseFloat(formData.latitude)) && !isNaN(parseFloat(formData.longitude)) && (
+                        <MapboxMarker
+                          longitude={parseFloat(formData.longitude)}
+                          latitude={parseFloat(formData.latitude)}
+                        >
+                          <FaMapMarkerAlt className="text-red-500 text-3xl" />
+                        </MapboxMarker>
+                      )}
+                    </MapboxMap>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4 mt-2">
+                    <div>
+                      <Label htmlFor="latitude">Latitude</Label>
+                      <Input
+                        id="latitude"
+                        value={formData.latitude}
+                        onChange={(e) =>
+                          setFormData({ ...formData, latitude: e.target.value })
+                        }
+                        placeholder="Enter latitude or click map to pick"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="longitude">Longitude</Label>
+                      <Input
+                        id="longitude"
+                        value={formData.longitude}
+                        onChange={(e) =>
+                          setFormData({ ...formData, longitude: e.target.value })
+                        }
+                        placeholder="Enter longitude or click map to pick"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="thumbnail">Thumbnail</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      id="thumbnail"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleFileUpload}
+                      disabled={isUploading}
+                    />
+                    {formData.thumbnail && (
+                      <img
+                        src={URL.createObjectURL(formData.thumbnail)}
+                        alt="Preview"
+                        className="w-8 h-8 object-cover rounded"
                       />
                     )}
-                  </Map>
-                </div>
-                <div className="grid grid-cols-2 gap-4 mt-2">
-                  <div>
-                    <Label htmlFor="latitude">Latitude</Label>
-                    <Input
-                      id="latitude"
-                      value={formData.latitude}
-                      onChange={(e) =>
-                        setFormData({ ...formData, latitude: e.target.value })
-                      }
-                      readOnly
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="longitude">Longitude</Label>
-                    <Input
-                      id="longitude"
-                      value={formData.longitude}
-                      onChange={(e) =>
-                        setFormData({ ...formData, longitude: e.target.value })
-                      }
-                      readOnly
-                    />
                   </div>
                 </div>
-              </div>
 
-              <div>
-                <Label htmlFor="thumbnail">Thumbnail</Label>
-                <div className="flex items-center gap-2">
-                  <Input
-                    id="thumbnail"
-                    type="file"
-                    accept="image/*"
-                    onChange={handleFileUpload}
-                    disabled={isUploading}
-                  />
-                  {formData.thumbnail && (
+                <Button type="submit" className="w-full">
+                  {selectedDestination ? "Update" : "Create"}
+                </Button>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-xl shadow p-6 mb-6">
+        <h2 className="text-xl font-bold mb-4">Destination Map</h2>
+        {!process.env.NEXT_PUBLIC_MAPBOX_TOKEN && (
+          <div className="text-red-600 font-bold mb-4">Mapbox token not found! Check NEXT_PUBLIC_MAPBOX_TOKEN in .env</div>
+        )}
+        <div className="h-[300px] md:h-[400px] lg:h-[500px] rounded-lg overflow-hidden">
+          <MapboxMap
+            ref={mapRef}
+            mapboxAccessToken={process.env.NEXT_PUBLIC_MAPBOX_TOKEN}
+            initialViewState={viewState}
+            onMove={evt => setViewState(evt.viewState)}
+            mapStyle="mapbox://styles/mapbox/streets-v12"
+            onLoad={() => setMapLoaded(true)}
+          >
+            {filteredDestinations.map(d => (
+              d.latitude != null && d.longitude != null && !isNaN(d.latitude) && !isNaN(d.longitude) && (
+                <MapboxMarker key={d.id} longitude={d.longitude} latitude={d.latitude} anchor="bottom">
+                  {d.category?.icon ? (
                     <img
-                      src={URL.createObjectURL(formData.thumbnail)}
-                      alt="Preview"
-                      className="w-8 h-8 object-cover rounded"
+                      src={d.category.icon}
+                      alt={d.category.name}
+                      title={d.name}
+                      className="w-8 h-8 rounded-full border-2 border-white shadow-lg bg-white object-cover"
+                      style={{ transform: "translateY(-4px)" }}
                     />
+                  ) : (
+                    <div className="bg-blue-500 rounded-full p-1 shadow-lg border-2 border-white" title={d.name}>
+                      <FaMapMarkerAlt className="text-white text-2xl" />
+                    </div>
                   )}
-                </div>
-              </div>
-
-              <Button type="submit" className="w-full">
-                {selectedDestination ? "Update" : "Create"}
-              </Button>
-            </form>
-          </DialogContent>
-        </Dialog>
+                </MapboxMarker>
+              )
+            ))}
+          </MapboxMap>
+        </div>
+        <div className="mt-4 text-sm text-gray-600">Click on the map in the 'Add/Edit Destination' dialog to select coordinates.</div>
       </div>
 
       {isLoading ? (
@@ -617,7 +717,7 @@ export default function TouristDestinationsPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {destinations.map((destination) => (
+            {filteredDestinations.map((destination) => (
               <TableRow key={destination.id}>
                 <TableCell>{destination.name}</TableCell>
                 <TableCell>{destination.category?.name}</TableCell>
@@ -680,7 +780,6 @@ export default function TouristDestinationsPage() {
           </TableBody>
         </Table>
       )}
-      {/* View Dialog */}
       <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -724,7 +823,7 @@ export default function TouristDestinationsPage() {
                 <div className="font-semibold mb-2">Location</div>
                 {viewDestination.latitude && viewDestination.longitude ? (
                   <div className="h-[200px] rounded-lg overflow-hidden">
-                    <Map
+                    <MapboxMap
                       initialViewState={{
                         longitude: Number(viewDestination.longitude),
                         latitude: Number(viewDestination.latitude),
@@ -735,11 +834,11 @@ export default function TouristDestinationsPage() {
                       mapStyle="mapbox://styles/mapbox/streets-v12"
                       interactive={false}
                     >
-                      <Marker
+                      <MapboxMarker
                         longitude={Number(viewDestination.longitude)}
                         latitude={Number(viewDestination.latitude)}
                       />
-                    </Map>
+                    </MapboxMap>
                   </div>
                 ) : (
                   <span className="text-gray-400">No location data</span>
@@ -753,7 +852,6 @@ export default function TouristDestinationsPage() {
           )}
         </DialogContent>
       </Dialog>
-      {/* Ticket Management Dialog */}
       <Dialog open={isTicketDialogOpen} onOpenChange={setIsTicketDialogOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -797,7 +895,6 @@ export default function TouristDestinationsPage() {
                   </TableBody>
                 </Table>
               )}
-              {/* Form to add new ticket will go here */}
               <h3 className="text-lg font-semibold">Add New Ticket</h3>
               <form onSubmit={handleAddTicketSubmit} className="space-y-4">
                 <div>
@@ -875,7 +972,6 @@ export default function TouristDestinationsPage() {
           )}
         </DialogContent>
       </Dialog>
-      {/* Edit Ticket Dialog */}
       <Dialog open={isEditTicketDialogOpen} onOpenChange={setIsEditTicketDialogOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>

@@ -85,8 +85,8 @@ export default function Beranda() {
           catRes.json(),
           destRes.json()
         ]);
-        setCategories(catData);
-        setDestinations(destData);
+        setCategories(Array.isArray(catData.data) ? catData.data : catData);
+        setDestinations(Array.isArray(destData.data) ? destData.data : []);
       } catch (error) {
         console.error("[FETCH_CATEGORIES_DESTINATIONS_ERROR]", error);
       } finally {
@@ -102,7 +102,7 @@ export default function Beranda() {
   return (
     <>
       <Navbar />
-      <main className="bg-[#FAF7F3] min-h-screen font-sans">
+      <main className="min-h-screen font-sans">
         {/* Hero Section */}
         <section className="relative w-full min-h-screen flex flex-col justify-center items-start px-8 md:px-32 overflow-hidden">
           {/* Background image with parallax effect */}
@@ -198,7 +198,7 @@ export default function Beranda() {
             >
               <h4 className="text-[#BBA14F] text-xl font-semibold mb-4">Kebumen</h4>
               <p className="text-gray-700 leading-relaxed mb-6">
-                nec consectetur nibh in nec non risus viverra placerat. lorem, varius at, odio Donec laoreet id odio vitae diam tortor, non tortor, urna. vitae cursus Nam venenatis varius tortor, nisi sed viverra dolor non quis Cras urna Nunc dignissim, nec consectetur nibh in nec non risus viverra placerat.
+              Kabupaten Kebumen, yang terletak di bagian selatan Provinsi Jawa Tengah, merupakan daerah yang kaya akan potensi pariwisata dengan keindahan alam yang memukau serta kekayaan budaya yang khas. Dikenal dengan pantai-pantainya yang eksotis seperti Pantai Menganti dan Pantai Suwuk, Kebumen juga memiliki pesona wisata alam lainnya seperti Goa Jatijajar, Sagara View, dan Geopark Karangsambung-Karangbolong yang menyimpan nilai geologi penting. Selain itu, keramahan masyarakat lokal dan kekayaan kuliner tradisional turut menjadi daya tarik tersendiri bagi para wisatawan yang ingin menikmati pengalaman liburan yang autentik dan berkesan
               </p>
               <motion.button 
                 whileHover={{ scale: 1.05 }}
@@ -212,7 +212,7 @@ export default function Beranda() {
         </section>
 
         {/* Kategori Pariwisata Section */}
-        <section className="py-24 px-4 md:px-32 animate-on-scroll opacity-0 translate-y-8 transition-all duration-700 bg-gradient-to-b from-[#FAF7F3] to-white">
+        <section className="py-24 px-4 md:px-32 animate-on-scroll opacity-0 translate-y-8 transition-all duration-700">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -315,16 +315,14 @@ export default function Beranda() {
             transition={{ duration: 0.6 }}
             className="w-full max-w-4xl"
           >
-            <div className="relative rounded-2xl overflow-hidden shadow-2xl mb-8">
-              <img 
-                src="https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1200&q=80" 
-                alt="Dolan Bumen App" 
-                className="w-full h-[400px] object-cover transform hover:scale-105 transition-transform duration-700"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-            </div>
+            <img 
+              src="/hero/Hero-DolanBumen.png" 
+              alt="Dolan Bumen App" 
+              className="w-full max-w-md h-[400px] mx-auto object-contain transition-transform duration-700 hover:scale-105 mb-2"
+            />
             <p className="text-gray-700 leading-relaxed text-center">
-              nec consectetur nibh in nec non risus viverra placerat. lorem, varius at, odio Donec laoreet id odio vitae diam tortor, non tortor, urna. vitae cursus Nam venenatis varius tortor, nisi sed viverra dolor non quis Cras urna Nunc dignissim, nec consectetur nibh in nec non risus viverra placerat.
+              Aplikasi Dolan Bumen adalah platform digital berbasis website yang menyediakan informasi dan layanan terkait pariwisata di Kabupaten Kebumen, Jawa Tengah. Aplikasi ini bertujuan untuk memudahkan wisatawan dalam menemukan dan menikmati keindahan alam, budaya, dan destinasi wisata terbaik di Kebumen.
+              Temukan beragam destinasi wisata dan aktivitas yang menarik di Kebumen melalui aplikasi ini.
             </p>
           </motion.div>
         </section>
