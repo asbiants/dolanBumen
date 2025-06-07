@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import Footer from '@/components/footer/footer';
+import type { JSX } from 'react';
 
 interface UserData {
   id: string;
@@ -57,37 +58,24 @@ export default function ConsumerDashboardPage() {
 
   useEffect(() => {
     const fetchData = async () => {
-      try {
-        const [userResponse, complaintsResponse, ticketsResponse] = await Promise.all([
-          fetch("/api/auth/consumer/me"),
-          fetch("/api/complaints"),
-          fetch("/api/consumer/tickets")
-        ]);
-
-        if (!userResponse.ok) {
-          throw new Error("Gagal mengambil data pengguna");
-        }
-
-        const userData = await userResponse.json();
-        setUser(userData.user);
-
-        if (complaintsResponse.ok) {
-          const complaintsData = await complaintsResponse.json();
-          const arr = Array.isArray(complaintsData.complaints) ? complaintsData.complaints : (Array.isArray(complaintsData.data) ? complaintsData.data : []);
+      setLoading(true);
+      Promise.allSettled([
+        fetch("/api/auth/consumer/me").then(r => r.json()),
+        fetch("/api/complaints").then(r => r.json()),
+        fetch("/api/consumer/tickets").then(r => r.json())
+      ]).then(([userRes, complaintsRes, ticketsRes]) => {
+        if (userRes.status === 'fulfilled' && userRes.value?.user) setUser(userRes.value.user);
+        if (complaintsRes.status === 'fulfilled') {
+          const arr = Array.isArray(complaintsRes.value.complaints) ? complaintsRes.value.complaints : (Array.isArray(complaintsRes.value.data) ? complaintsRes.value.data : []);
           setComplaints(arr);
         }
-
-        if (ticketsResponse.ok) {
-          const ticketsData = await ticketsResponse.json();
-          setTickets(Array.isArray(ticketsData.data) ? ticketsData.data : []);
+        if (ticketsRes.status === 'fulfilled') setTickets(Array.isArray(ticketsRes.value.data) ? ticketsRes.value.data : []);
+        if (userRes.status === 'rejected' && complaintsRes.status === 'rejected' && ticketsRes.status === 'rejected') {
+          setError("Gagal memuat data dashboard");
         }
-      } catch (error) {
-        setError(error instanceof Error ? error.message : "Terjadi kesalahan");
-      } finally {
-        setLoading(false);
-      }
+      }).catch(() => setError("Gagal memuat data dashboard"))
+        .finally(() => setLoading(false));
     };
-
     fetchData();
   }, []);
 
@@ -107,50 +95,28 @@ export default function ConsumerDashboardPage() {
     }
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'PENDING':
-        return <Clock className="h-4 w-4 text-yellow-500" />;
-      case 'PROCESSING':
-        return <AlertCircle className="h-4 w-4 text-blue-500" />;
-      case 'RESOLVED':
-        return <CheckCircle2 className="h-4 w-4 text-green-500" />;
-      case 'REJECTED':
-        return <XCircle className="h-4 w-4 text-red-500" />;
-      default:
-        return <Clock className="h-4 w-4 text-gray-500" />;
-    }
+  const statusIconMap: Record<string, JSX.Element> = {
+    PENDING: <Clock className="h-4 w-4 text-yellow-500" />,
+    PROCESSING: <AlertCircle className="h-4 w-4 text-blue-500" />,
+    RESOLVED: <CheckCircle2 className="h-4 w-4 text-green-500" />,
+    REJECTED: <XCircle className="h-4 w-4 text-red-500" />,
+    DEFAULT: <Clock className="h-4 w-4 text-gray-500" />,
   };
-
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'PENDING':
-        return 'Menunggu';
-      case 'PROCESSING':
-        return 'Diproses';
-      case 'RESOLVED':
-        return 'Selesai';
-      case 'REJECTED':
-        return 'Ditolak';
-      default:
-        return status;
-    }
+  const statusTextMap: Record<string, string> = {
+    PENDING: 'Menunggu',
+    PROCESSING: 'Diproses',
+    RESOLVED: 'Selesai',
+    REJECTED: 'Ditolak',
   };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'PENDING':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'PROCESSING':
-        return 'bg-blue-100 text-blue-800';
-      case 'RESOLVED':
-        return 'bg-green-100 text-green-800';
-      case 'REJECTED':
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
+  const statusColorMap: Record<string, string> = {
+    PENDING: 'bg-yellow-100 text-yellow-800',
+    PROCESSING: 'bg-blue-100 text-blue-800',
+    RESOLVED: 'bg-green-100 text-green-800',
+    REJECTED: 'bg-red-100 text-red-800',
   };
+  const getStatusIcon = (status: string) => statusIconMap[status] || statusIconMap.DEFAULT;
+  const getStatusText = (status: string) => statusTextMap[status] || status;
+  const getStatusColor = (status: string) => statusColorMap[status] || 'bg-gray-100 text-gray-800';
 
   if (error) {
     return (
@@ -204,7 +170,11 @@ export default function ConsumerDashboardPage() {
                 <CardDescription>Informasi pribadi Anda</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {user && (
+                {loading ? (
+                  <div className="flex justify-center items-center py-4">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-500"></div>
+                  </div>
+                ) : user && (
                   <>
                     <div className="grid grid-cols-2 gap-4">
                       <div>

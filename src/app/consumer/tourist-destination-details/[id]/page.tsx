@@ -50,17 +50,21 @@ export default function TouristDestinationDetail() {
   useEffect(() => {
     if (!id) return;
     setLoading(true);
-    Promise.all([
+    Promise.allSettled([
       fetch(`/api/admin/tourist-destinations/${id}`).then(r => r.json()),
       fetch(`/api/admin/tourist-destinations/photos?destinationId=${id}`).then(r => r.json()),
       fetch(`/api/admin/tourist-destinations/${id}/reviews`).then(r => r.json()),
       fetch("/api/auth/consumer/me").then(r => r.ok ? r.json() : null)
-    ]).then(([dest, photos, reviews, user]) => {
-      setDestination(dest);
-      setPhotos(photos);
-      setReviews(reviews);
-      setUser(user?.user || null);
-    }).catch(e => setError("Gagal memuat data"))
+    ]).then((results) => {
+      const [dest, photos, reviews, user] = results;
+      if (dest.status === 'fulfilled') setDestination(dest.value);
+      if (photos.status === 'fulfilled') setPhotos(photos.value);
+      if (reviews.status === 'fulfilled') setReviews(reviews.value);
+      if (user.status === 'fulfilled') setUser(user.value?.user || null);
+      if (dest.status === 'rejected' && photos.status === 'rejected' && reviews.status === 'rejected') {
+        setError("Gagal memuat data");
+      }
+    }).catch(() => setError("Gagal memuat data"))
       .finally(() => setLoading(false));
   }, [id]);
 
@@ -135,12 +139,19 @@ export default function TouristDestinationDetail() {
         <div className="md:col-span-2 flex flex-col gap-8">
           {/* Galeri dengan tombol */}
           <div className="bg-white rounded-3xl shadow-xl p-6 flex flex-col gap-4 items-center transform transition-all duration-300 hover:shadow-2xl">
-            <div className="relative w-full max-w-2xl aspect-[16/9] bg-gray-100 rounded-2xl overflow-hidden flex items-center justify-center mb-2">
+            <div className="relative w-full max-w-2xl bg-gray-100 rounded-2xl overflow-hidden flex items-center justify-center mb-2" style={{ aspectRatio: '16/9' }}>
               {photos.length > 0 ? (
-                <img
+                <Image
                   src={photos[activeIndex]?.filePath}
                   alt={photos[activeIndex]?.caption || `Foto ${activeIndex+1}`}
-                  className="object-cover w-full h-full transition-transform duration-500 hover:scale-105"
+                  className="object-cover rounded-2xl transition-opacity duration-500"
+                  width={800}
+                  height={450}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  sizes="(max-width: 768px) 100vw, 800px"
+                  priority={activeIndex === 0}
+                  placeholder="blur"
+                  blurDataURL={photos[activeIndex]?.filePath || 'data:image/svg+xml;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/w8AAn8B9p6k9wAAAABJRU5ErkJggg=='}
                 />
               ) : (
                 <div className="w-full h-full bg-gray-200" />
@@ -250,10 +261,17 @@ export default function TouristDestinationDetail() {
           <div className="bg-white rounded-3xl shadow-xl p-6 flex flex-col gap-4 transform transition-all duration-300 hover:shadow-2xl">
             <div className="aspect-[4/3] bg-gray-100 rounded-2xl overflow-hidden flex items-center justify-center mb-2">
               {destination.thumbnailUrl ? (
-                <img 
-                  src={destination.thumbnailUrl} 
-                  alt={destination.name} 
-                  className="object-cover w-full h-full transition-transform duration-500 hover:scale-105" 
+                <Image
+                  src={destination.thumbnailUrl}
+                  alt={destination.name}
+                  className="object-cover rounded-2xl transition-opacity duration-500"
+                  width={400}
+                  height={300}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  sizes="(max-width: 768px) 100vw, 400px"
+                  priority={true}
+                  placeholder="blur"
+                  blurDataURL={destination.thumbnailUrl || 'data:image/svg+xml;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/w8AAn8B9p6k9wAAAABJRU5ErkJggg=='}
                 />
               ) : (
                 <span className="text-gray-400">No Image</span>
@@ -267,7 +285,16 @@ export default function TouristDestinationDetail() {
               <span>{destination.openingTime ? new Date(destination.openingTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--'} - {destination.closingTime ? new Date(destination.closingTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--'}</span>
             </div>
             <div className="flex items-center gap-3 mb-4">
-              {destination.category?.icon && <img src={destination.category.icon} alt={destination.category.name} className="w-10 h-10 rounded-full shadow-md" />}
+              {destination.category?.icon && (
+                <Image
+                  src={destination.category.icon}
+                  alt={destination.category.name}
+                  className="w-10 h-10 rounded-full shadow-md"
+                  width={40}
+                  height={40}
+                  loading="lazy"
+                />
+              )}
               <span className="font-semibold text-gray-700">{destination.category?.name || '-'}</span>
             </div>
             <div className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl p-3 text-center text-blue-700 font-semibold shadow-inner">Selamat Berkunjung</div>
@@ -291,11 +318,14 @@ export default function TouristDestinationDetail() {
                   {destination.latitude && destination.longitude && (
                     <Marker longitude={Number(destination.longitude)} latitude={Number(destination.latitude)} anchor="bottom">
                       {destination.category?.icon ? (
-                        <img
+                        <Image
                           src={destination.category.icon}
                           alt={destination.category.name}
                           className="w-10 h-10 rounded-full border-2 border-white shadow-lg bg-white object-cover"
+                          width={40}
+                          height={40}
                           style={{ transform: "translateY(-8px)" }}
+                          loading="lazy"
                         />
                       ) : (
                         <div className="bg-yellow-400 rounded-full p-1 shadow-lg border-2 border-white">
