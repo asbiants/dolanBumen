@@ -41,6 +41,7 @@ export default function TumbasWisataPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
+  const [visibleCount, setVisibleCount] = useState(6);
 
   // Fetch categories on mount
   useEffect(() => {
@@ -63,8 +64,8 @@ export default function TumbasWisataPage() {
     setLoading(true);
     fetchDestinations(selectedCategoryId || undefined)
       .then(data => {
-        // console.log("[DEBUG] Fetched Destinations with Ratings:", data); // Removed Debug log
         setDestinations(data);
+        setVisibleCount(6); // Reset visible count setiap ganti kategori
       })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
@@ -179,62 +180,72 @@ export default function TumbasWisataPage() {
           {destinations.length === 0 ? (
             <div className="text-center text-gray-500">Tidak ada destinasi ditemukan.</div>
           ) : (
+            <>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
-              {destinations.map((dest) => {
-                console.log(`[DEBUG Render] Destination: ${dest.name}, Avg Rating: ${dest.averageRating}`); // Debug log before rendering
-                return (
-                  <div
-                    key={dest.id}
-                    className="bg-white rounded-2xl shadow p-4 flex flex-col relative transition-all duration-200 hover:-translate-y-1 hover:shadow-lg"
-                  >
-                    {/* Kategori dan logo */}
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
-                        {dest.category?.icon ? (
-                          <img src={dest.category.icon} alt={dest.category.name} className="object-cover w-full h-full" />
-                        ) : (
-                          <span className="text-xs text-gray-400">Logo</span>
-                        )}
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="text-sm font-semibold italic">{dest.category?.name || "Kategori Wisata"}</span>
-                        <span className="text-xs text-gray-500 leading-3">Dolan Bumen</span>
-                      </div>
-                    </div>
-                    {/* Gambar utama */}
-                    <div className="w-full h-36 bg-gray-200 rounded-lg mb-3 flex items-center justify-center overflow-hidden">
-                      {dest.thumbnailUrl ? (
-                        <img src={dest.thumbnailUrl} alt={dest.name} className="object-cover w-full h-full" />
+              {destinations.slice(0, visibleCount).map((dest) => (
+                <div
+                  key={dest.id}
+                  className="bg-white rounded-2xl shadow p-4 flex flex-col relative transition-all duration-200 hover:-translate-y-1 hover:shadow-lg"
+                >
+                  {/* Kategori dan logo */}
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
+                      {dest.category?.icon ? (
+                        <img src={dest.category.icon} alt={dest.category.name} className="object-cover w-full h-full" />
                       ) : (
-                        <span className="text-gray-400">No Image</span>
+                        <span className="text-xs text-gray-400">Logo</span>
                       )}
                     </div>
-                    {/* Rating rata kiri */}
-                    <div className="flex items-center mb-1">
-                      {renderStars(dest.averageRating || 0)} {/* Use the new renderStars function */}
-                      {/* Display average rating number */}
-                      {/* Ensure averageRating is a number before displaying */}
-                      {typeof dest.averageRating === 'number' && (
-                         <span className="ml-1 text-sm text-gray-700">({dest.averageRating.toFixed(1)})</span>
-                      )}
-                    </div>
-                    {/* Nama dan alamat */}
-                    <div className="w-full text-left mb-2">
-                      <div className="font-bold italic text-lg">{dest.name}</div>
-                      <div className="text-xs text-gray-500 italic">Alamat: {dest.address}</div>
-                    </div>
-                    {/* Tombol detail kanan bawah */}
-                    <div className="absolute bottom-4 right-4">
-                      <Link href={`/consumer/tourist-destination-details/${dest.id}`}>
-                        <button className="w-8 h-8 rounded-full bg-yellow-300 flex items-center justify-center shadow hover:bg-yellow-400 transition">
-                          <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="12" fill="none"/><path d="M9 6l6 6-6 6" stroke="#222" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                        </button>
-                      </Link>
+                    <div className="flex flex-col">
+                      <span className="text-sm font-semibold italic">{dest.category?.name || "Kategori Wisata"}</span>
+                      <span className="text-xs text-gray-500 leading-3">Dolan Bumen</span>
                     </div>
                   </div>
-                );
-              })}
+                  {/* Gambar utama */}
+                  <div className="w-full h-36 bg-gray-200 rounded-lg mb-3 flex items-center justify-center overflow-hidden">
+                    {dest.thumbnailUrl ? (
+                      <img src={dest.thumbnailUrl} alt={dest.name} className="object-cover w-full h-full" />
+                    ) : (
+                      <span className="text-gray-400">No Image</span>
+                    )}
+                  </div>
+                  {/* Rating rata kiri */}
+                  <div className="flex items-center mb-1">
+                    {renderStars(dest.averageRating || 0)}
+                    {typeof dest.averageRating === 'number' && (
+                      <span className="ml-1 text-sm text-gray-700">({dest.averageRating.toFixed(1)})</span>
+                    )}
+                  </div>
+                  {/* Nama dan alamat */}
+                  <div className="w-full text-left mb-2">
+                    <div className="font-bold italic text-lg">{dest.name}</div>
+                    <div className="text-xs text-gray-500 italic">Alamat: {dest.address}</div>
+                  </div>
+                  {/* Tombol detail kanan bawah */}
+                  <div className="absolute bottom-4 right-4">
+                    <Link href={`/consumer/tourist-destination-details/${dest.id}`}>
+                      <button className="w-8 h-8 rounded-full bg-yellow-300 flex items-center justify-center shadow hover:bg-yellow-400 transition">
+                        <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="12" fill="none"/><path d="M9 6l6 6-6 6" stroke="#222" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                      </button>
+                    </Link>
+                  </div>
+                </div>
+              ))}
             </div>
+            {/* Tombol tampilkan lainnya */}
+            <div className="flex justify-center mt-8">
+              {visibleCount < destinations.length ? (
+                <button
+                  className="px-6 py-2 bg-yellow-400 hover:bg-yellow-500 text-black font-bold rounded-lg shadow transition"
+                  onClick={() => setVisibleCount(v => Math.min(v + 6, destinations.length))}
+                >
+                  Tampilkan Lainnya
+                </button>
+              ) : destinations.length > 6 ? (
+                <span className="text-gray-500 font-semibold">Semua data sudah ditampilkan</span>
+              ) : null}
+            </div>
+            </>
           )}
         </div>
       </div>
