@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import * as jwt from "jsonwebtoken";
 
-const JWT_SECRET = process.env.JWT_SECRET || "your-super-secret-jwt-key-for-development";
+const JWT_SECRET =
+  process.env.JWT_SECRET || "your-super-secret-jwt-key-for-development";
 
 // Define protected and auth routes
 const consumerProtectedRoutes = ["/consumer/dashboard"];
@@ -14,8 +15,10 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Consumer logic
-  const isConsumerProtected = consumerProtectedRoutes.some(route => pathname.startsWith(route));
-  const isConsumerAuth = consumerAuthRoutes.some(route => pathname === route);
+  const isConsumerProtected = consumerProtectedRoutes.some((route) =>
+    pathname.startsWith(route)
+  );
+  const isConsumerAuth = consumerAuthRoutes.some((route) => pathname === route);
   const consumerToken = request.cookies.get("consumer-token")?.value;
 
   if (isConsumerProtected && !consumerToken) {
@@ -24,8 +27,14 @@ export function middleware(request: NextRequest) {
   if (isConsumerAuth && consumerToken) {
     try {
       const decoded = jwt.verify(consumerToken, JWT_SECRET);
-      if (decoded && typeof decoded === "object" && decoded.role === "CONSUMER") {
-        return NextResponse.redirect(new URL("/consumer/dashboard", request.url));
+      if (
+        decoded &&
+        typeof decoded === "object" &&
+        decoded.role === "CONSUMER"
+      ) {
+        return NextResponse.redirect(
+          new URL("/consumer/dashboard", request.url)
+        );
       }
     } catch {
       // If token invalid, clear cookie
@@ -41,8 +50,10 @@ export function middleware(request: NextRequest) {
   }
 
   // Admin logic
-  const isAdminProtected = adminProtectedRoutes.some(route => pathname.startsWith(route));
-  const isAdminAuth = adminAuthRoutes.some(route => pathname === route);
+  const isAdminProtected = adminProtectedRoutes.some((route) =>
+    pathname.startsWith(route)
+  );
+  const isAdminAuth = adminAuthRoutes.some((route) => pathname === route);
   const adminToken = request.cookies.get("admin-token")?.value;
 
   if (isAdminProtected && !adminToken) {
@@ -75,8 +86,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: [
-    "/consumer/:path*",
-    "/admin/:path*",
-  ],
-}; 
+  matcher: ["/consumer/:path*", "/admin/:path*"],
+};
