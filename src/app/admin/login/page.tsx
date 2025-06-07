@@ -1,28 +1,43 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Eye, EyeOff, Lock, Mail } from "lucide-react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import Navbar from "@/components/navbar/navbar";
 
-// Validation schema for the form
 const formSchema = z.object({
-  email: z.string().min(1, { message: "Email wajib diisi" }).email({ message: "Format email tidak valid" }),
+  email: z
+    .string()
+    .min(1, { message: "Email wajib diisi" })
+    .email({ message: "Format email tidak valid" }),
   password: z.string().min(1, { message: "Password wajib diisi" }),
 });
 
 type FormValues = z.infer<typeof formSchema>;
 
-export default function AdminLoginPage() {
+function AdminLoginInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
@@ -30,7 +45,6 @@ export default function AdminLoginPage() {
   const [error, setError] = useState<string | null>(null);
   const showSuccessMessage = searchParams.get("success") === "true";
 
-  // Initialize form
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -39,7 +53,6 @@ export default function AdminLoginPage() {
     },
   });
 
-  // Check if already logged in
   useEffect(() => {
     const checkSession = async () => {
       try {
@@ -47,17 +60,13 @@ export default function AdminLoginPage() {
         console.error("Session check error:", error);
       }
     };
-
     checkSession();
   }, [router]);
 
-  // Form submission handler
   const onSubmit = async (values: FormValues) => {
     setIsLoading(true);
     setError(null);
-
     try {
-      // Call the authentication API
       const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: {
@@ -65,9 +74,7 @@ export default function AdminLoginPage() {
         },
         body: JSON.stringify(values),
       });
-
       const data = await response.json();
-
       if (!response.ok) {
         throw new Error(data.message || "Autentikasi gagal");
       }
@@ -80,8 +87,6 @@ export default function AdminLoginPage() {
   };
 
   return (
-    <>
-    
     <div className="flex items-center justify-center min-h-screen bg-gray-50">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
@@ -91,16 +96,16 @@ export default function AdminLoginPage() {
         <CardContent>
           {showSuccessMessage && (
             <Alert className="mb-6 bg-green-50 text-green-800 border-green-200">
-              <AlertDescription>Akun super admin berhasil dibuat! Silakan login.</AlertDescription>
+              <AlertDescription>
+                Akun super admin berhasil dibuat! Silakan login.
+              </AlertDescription>
             </Alert>
           )}
-
           {error && (
             <Alert variant="destructive" className="mb-6">
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
-
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <FormField
@@ -112,14 +117,18 @@ export default function AdminLoginPage() {
                     <FormControl>
                       <div className="relative">
                         <Mail className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
-                        <Input placeholder="email@example.com" className="pl-10" {...field} disabled={isLoading} />
+                        <Input
+                          placeholder="email@example.com"
+                          className="pl-10"
+                          {...field}
+                          disabled={isLoading}
+                        />
                       </div>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-
               <FormField
                 control={form.control}
                 name="password"
@@ -129,9 +138,24 @@ export default function AdminLoginPage() {
                     <FormControl>
                       <div className="relative">
                         <Lock className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
-                        <Input type={showPassword ? "text" : "password"} placeholder="••••••••" className="pl-10" {...field} disabled={isLoading} />
-                        <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-500" tabIndex={-1}>
-                          {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                        <Input
+                          type={showPassword ? "text" : "password"}
+                          placeholder="••••••••"
+                          className="pl-10"
+                          {...field}
+                          disabled={isLoading}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-500"
+                          tabIndex={-1}
+                        >
+                          {showPassword ? (
+                            <EyeOff className="h-5 w-5" />
+                          ) : (
+                            <Eye className="h-5 w-5" />
+                          )}
                         </button>
                       </div>
                     </FormControl>
@@ -139,12 +163,7 @@ export default function AdminLoginPage() {
                   </FormItem>
                 )}
               />
-
-              <Button
-                type="submit"
-                className="w-full"
-                disabled={isLoading}
-              >
+              <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading ? (
                   <>
                     <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
@@ -158,7 +177,7 @@ export default function AdminLoginPage() {
                 type="button"
                 variant="outline"
                 className="w-full mt-2"
-                onClick={() => router.push('/consumer/login')}
+                onClick={() => router.push("/consumer/login")}
               >
                 Login sebagai User
               </Button>
@@ -167,8 +186,13 @@ export default function AdminLoginPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
 
-    </>
-    
+export default function Page() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <AdminLoginInner />
+    </Suspense>
   );
 }

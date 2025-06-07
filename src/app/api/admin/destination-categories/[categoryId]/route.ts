@@ -2,12 +2,14 @@ import { NextResponse, NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { cloudinary } from "@/lib/cloudinary";
 
+export const runtime = "nodejs";
+
 // GET /api/admin/destination-categories/[categoryId]
 export async function GET(
-  req: NextRequest,
-  context: { params: { categoryId: string } }
+  request: NextRequest,
+  { params }: { params: { categoryId: string } }
 ) {
-  const { categoryId } = context.params;
+  const { categoryId } = params;
 
   if (!categoryId) {
     return new NextResponse("Category ID is required", { status: 400 });
@@ -32,9 +34,9 @@ export async function GET(
 // PUT /api/admin/destination-categories/[categoryId]
 export async function PUT(
   request: NextRequest,
-  context: { params: { categoryId: string } }
+  { params }: { params: { categoryId: string } }
 ) {
-  const { categoryId } = context.params;
+  const { categoryId } = params;
 
   if (!categoryId) {
     return new NextResponse("Category ID is required", { status: 400 });
@@ -64,7 +66,9 @@ export async function PUT(
       try {
         const bytes = await iconFile.arrayBuffer();
         const buffer = Buffer.from(bytes);
-        const fileStr = `data:${iconFile.type};base64,${buffer.toString("base64")}`;
+        const fileStr = `data:${iconFile.type};base64,${buffer.toString(
+          "base64"
+        )}`;
 
         const result = await cloudinary.uploader.upload(fileStr, {
           folder: "destination-categories",
@@ -79,7 +83,9 @@ export async function PUT(
           const parts = currentCategory.icon.split("/");
           const publicIdWithExt = parts[parts.length - 1];
           const publicId = publicIdWithExt.split(".")[0];
-          await cloudinary.uploader.destroy(`destination-categories/${publicId}`);
+          await cloudinary.uploader.destroy(
+            `destination-categories/${publicId}`
+          );
         }
       } catch (error) {
         console.error("[ICON_UPLOAD_ERROR]", error);
@@ -102,9 +108,9 @@ export async function PUT(
 // DELETE /api/admin/destination-categories/[categoryId]
 export async function DELETE(
   request: NextRequest,
-  context: { params: { categoryId: string } }
+  { params }: { params: { categoryId: string } }
 ) {
-  const { categoryId } = context.params;
+  const { categoryId } = params;
 
   if (!categoryId) {
     return new NextResponse("Category ID is required", { status: 400 });
