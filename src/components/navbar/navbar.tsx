@@ -227,10 +227,19 @@ export default function Navbar() {
                 ) : (
                   <>
                     <Link href="/consumer/login">
-                      <Button variant="outline">Login</Button>
+                      <Button
+                        variant="outline"
+                        className="border border-gray-200 bg-white text-black rounded-xl px-6 py-2 font-semibold shadow-sm hover:shadow-md hover:border-blue-400 hover:text-blue-700 transition-all duration-200 focus:ring-2 focus:ring-blue-200 focus:outline-none"
+                      >
+                        Login
+                      </Button>
                     </Link>
                     <Link href="/consumer/register">
-                      <Button>Daftar</Button>
+                      <Button
+                        className="rounded-xl px-6 py-2 font-semibold bg-gradient-to-r from-[#2B4C7E] to-[#AEE1D6] text-white shadow-md hover:scale-105 hover:shadow-lg transition-all duration-200 border-0 focus:ring-2 focus:ring-[#AEE1D6] focus:outline-none"
+                      >
+                        Daftar
+                      </Button>
                     </Link>
                   </>
                 )}
@@ -329,11 +338,20 @@ export default function Navbar() {
                   </>
                 ) : (
                   <>
-                    <Link href="/consumer/login" className="flex items-center gap-2 text-black hover:text-gray-500" onClick={() => setMenuOpen(false)}>
-                      Login
+                    <Link href="/consumer/login">
+                      <Button
+                        variant="outline"
+                        className="border border-gray-200 bg-white text-black rounded-xl px-6 py-2 font-semibold shadow-sm hover:shadow-md hover:border-blue-400 hover:text-blue-700 transition-all duration-200 focus:ring-2 focus:ring-blue-200 focus:outline-none"
+                      >
+                        Login
+                      </Button>
                     </Link>
-                    <Link href="/consumer/register" className="flex items-center gap-2 text-black hover:text-gray-500" onClick={() => setMenuOpen(false)}>
-                      Daftar
+                    <Link href="/consumer/register">
+                      <Button
+                        className="rounded-xl px-6 py-2 font-semibold bg-gradient-to-r from-[#2B4C7E] to-[#AEE1D6] text-white shadow-md hover:scale-105 hover:shadow-lg transition-all duration-200 border-0 focus:ring-2 focus:ring-[#AEE1D6] focus:outline-none"
+                      >
+                        Daftar
+                      </Button>
                     </Link>
                   </>
                 )}

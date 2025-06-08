@@ -104,58 +104,29 @@ export default function Beranda() {
       <Navbar />
       <main className="min-h-screen font-sans">
         {/* Hero Section */}
-        <section className="relative w-full min-h-screen flex flex-col justify-center items-start px-8 md:px-32 overflow-hidden">
-          {/* Background image with parallax effect */}
-          <div className="absolute inset-0 z-0">
-            <div className="absolute inset-0 bg-gradient-to-br from-black/70 via-black/50 to-transparent" />
-            <div 
-              className="w-full h-full bg-cover bg-center bg-fixed"
-              style={{
-                backgroundImage: "url('https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1200&q=80')",
-                transform: "translateZ(-1px) scale(2)",
-              }}
-            />
-          </div>
-          
-          {/* Content */}
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-            className="relative z-10 flex flex-col gap-4"
-          >
-            <h1 className="text-4xl md:text-6xl font-extrabold text-white drop-shadow-lg mb-2">
-              {typedText}
-              <span className="inline-block w-2 h-8 bg-white align-bottom animate-pulse ml-1" style={{visibility: typedText.length === fullText.length ? 'hidden' : 'visible'}}></span>
+        <section className="relative w-full min-h-[70vh] flex flex-col justify-center items-center px-4 md:px-0 animated-gradient-bg">
+          <div className="flex flex-col items-center justify-center w-full max-w-3xl mx-auto py-24">
+            <h1 className="text-4xl md:text-6xl font-extrabold text-white text-center mb-6 leading-tight tracking-tight" style={{letterSpacing: '-0.03em'}}>
+              Dolan Bumen, Jelajahi Berbagai Destinasi Wisata di Kebumen!
             </h1>
-            <p className="text-xl md:text-3xl text-white/90 mb-2 drop-shadow font-light">Kabupaten Kebumen, Jawa Tengah</p>
-            <p className="text-base md:text-xl text-white/80 max-w-xl mb-6 drop-shadow font-light">
-              Temukan keindahan alam, budaya, dan destinasi wisata terbaik di Kebumen. Jelajahi pengalaman tak terlupakan bersama Dolan Bumen!
+            <p className="text-lg md:text-2xl text-white/80 text-center mb-8 font-light max-w-2xl">
+              Temukan destinasi wisata terbaik, keindahan alam, dan budaya di Kabupaten Kebumen.
             </p>
-            <motion.button 
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="self-start bg-[#AEE1D6] hover:bg-[#8fd1c2] text-[#1A2530] font-bold px-8 py-3 rounded-lg text-lg shadow-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#2B4C7E]"
-            >
-              Jelajahi Sekarang →
-            </motion.button>
-          </motion.div>
-
-          {/* Scroll indicator */}
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 1, duration: 1 }}
-            className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-10"
-          >
-            <div className="w-6 h-10 border-2 border-white/30 rounded-full flex justify-center">
-              <motion.div
-                animate={{ y: [0, 12, 0] }}
-                transition={{ duration: 1.5, repeat: Infinity }}
-                className="w-1 h-2 bg-white/50 rounded-full mt-2"
-              />
+            <div className="flex flex-col sm:flex-row gap-4 items-center justify-center mb-10">
+              <button
+                className="bg-[#AEE1D6] hover:bg-[#8fd1c2] text-[#1A2530] font-bold px-8 py-4 rounded-xl text-lg shadow-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#AEE1D6]"
+                onClick={() => router.push('/consumer/tumbas-wisata')}
+              >
+                Jelajahi Sekarang
+              </button>
+              <button
+                className="bg-white/10 hover:bg-white/20 text-white font-bold px-8 py-4 rounded-xl text-lg shadow-lg transition-all duration-200 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-white/30"
+                onClick={() => setShowAllCategories(true)}
+              >
+                Lihat Semua Kategori
+              </button>
             </div>
-          </motion.div>
+          </div>
         </section>
 
         {/* Mengenal Section */}
@@ -330,6 +301,27 @@ export default function Beranda() {
         {/* Footer Section */}
         <Footer />
       </main>
+      <style jsx global>{`
+@keyframes marquee-right {
+  0% { transform: translateX(-50%); }
+  100% { transform: translateX(0); }
+}
+.animate-marquee-right {
+  display: inline-flex;
+  min-width: 200%;
+  animation: marquee-right 30s linear infinite;
+}
+.animated-gradient-bg {
+  background: linear-gradient(120deg, #1A2530, #2B4C7E, #AEE1D6, #BBA14F, #1A2530);
+  background-size: 300% 300%;
+  animation: gradientMove 10s ease-in-out infinite;
+}
+@keyframes gradientMove {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+`}</style>
     </>
   );
 } 

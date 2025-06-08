@@ -202,51 +202,66 @@ const StoryMap = () => {
     map.current.touchPitch.disable();
   }, [mapLoaded]);
 
+  // Tambahkan useEffect untuk trigger map.resize() saat window resize di mobile
+  useEffect(() => {
+    if (!map.current) return;
+    const handleResize = () => {
+      map.current && map.current.resize();
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [mapLoaded]);
+
   return (
     <>
       <Navbar />
-      <div className="flex h-screen">
-        {/* Map Section (60%) */}
-        <div className="w-[60%] h-full relative">
-          <div ref={mapContainer} className="w-full h-full" />
+      <div className="flex flex-col md:flex-row h-screen">
+        {/* Map Section */}
+        <div className="w-full md:w-[60%] h-64 md:h-full relative order-1 md:order-none min-w-0 overflow-hidden">
+          <div ref={mapContainer} className="w-full h-full min-w-0" />
         </div>
 
-        {/* Story Section (40%) */}
-        <div className="w-[40%] h-full bg-white p-4 overflow-hidden">
+        {/* Story Section */}
+        <div className="w-full md:w-[40%] h-[calc(100vh-16rem)] md:h-full bg-white p-4 overflow-hidden order-2 md:order-none">
           <h1 className="text-2xl font-bold mb-4">Destinasi Wisata</h1>
           {/* Filter kategori */}
-          <div className="flex flex-wrap gap-2 mb-4">
-            <button
-              className={`px-4 py-1 rounded-full border text-sm font-semibold transition-all flex items-center gap-2 ${
-                selectedCategoryId === null
-                  ? 'bg-blue-600 text-white border-blue-600 shadow'
-                  : 'bg-white text-gray-700 border-gray-300 hover:bg-blue-50'
-              }`}
-              onClick={() => setSelectedCategoryId(null)}
-            >
-              Semua
-            </button>
-            {categories.map(cat => (
+          <div className="w-full overflow-x-auto pb-3 px-3" style={{ WebkitOverflowScrolling: 'touch' }}>
+            <div className="flex flex-nowrap gap-3 md:grid md:grid-cols-4 md:gap-2 whitespace-nowrap md:whitespace-normal">
               <button
-                key={cat.id}
-                className={`px-4 py-1 rounded-full border text-sm font-semibold transition-all flex items-center gap-2 ${
-                  selectedCategoryId === cat.id
-                    ? 'bg-blue-600 text-white border-blue-600 shadow'
+                className={`flex-shrink-0 w-auto min-w-[110px] max-w-[140px] px-3 py-1.5 rounded-xl border text-xs font-medium transition-all flex items-center justify-center text-center gap-2 focus:outline-none focus:ring-2 focus:ring-blue-200 shadow-sm hover:shadow-md ${
+                  selectedCategoryId === null
+                    ? 'bg-blue-500 text-white border-blue-500 shadow-md'
                     : 'bg-white text-gray-700 border-gray-300 hover:bg-blue-50'
                 }`}
-                onClick={() => setSelectedCategoryId(cat.id)}
+                aria-pressed={selectedCategoryId === null}
+                onClick={() => setSelectedCategoryId(null)}
               >
-                {cat.icon && (
-                  <img src={cat.icon} alt={cat.name} className="w-5 h-5 rounded-full object-cover" />
-                )}
-                {cat.name}
+                Semua
               </button>
-            ))}
+              {categories.map(cat => (
+                <button
+                  key={cat.id}
+                  className={`flex-shrink-0 w-auto min-w-[110px] max-w-[140px] px-3 py-1.5 rounded-xl border text-xs font-medium transition-all flex items-center justify-center text-center gap-2 focus:outline-none focus:ring-2 focus:ring-blue-200 shadow-sm hover:shadow-md ${
+                    selectedCategoryId === cat.id
+                      ? 'bg-blue-500 text-white border-blue-500 shadow-md'
+                      : 'bg-white text-gray-700 border-gray-300 hover:bg-blue-50'
+                  }`}
+                  aria-pressed={selectedCategoryId === cat.id}
+                  onClick={() => setSelectedCategoryId(cat.id)}
+                  title={cat.name}
+                >
+                  {cat.icon && (
+                    <img src={cat.icon} alt={cat.name} className="w-4 h-4 rounded-full object-cover" />
+                  )}
+                  {cat.name}
+                </button>
+              ))}
+            </div>
           </div>
           {loading ? (
             <div className="flex justify-center items-center h-40 text-gray-500">Memuat data destinasi...</div>
           ) : (
-            <ScrollArea className="h-[calc(100%-7rem)]" id="story-scroll-area">
+            <ScrollArea className="h-[calc(100vh-22rem)] md:h-[calc(100%-7rem)]" id="story-scroll-area">
               <div className="space-y-4">
                 {filteredDestinations.map((destination, idx) => (
                   <Card
