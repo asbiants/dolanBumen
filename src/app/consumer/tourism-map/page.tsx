@@ -88,6 +88,8 @@ export default function TourismMapPage() {
   const [clusterEnabled, setClusterEnabled] = useState(true);
   const [clusters, setClusters] = useState<any[]>([]);
   const [superclusterInstance, setSuperclusterInstance] = useState<any>(null);
+  const [jaringanJalanGeoJSON, setJaringanJalanGeoJSON] = useState<any>(null);
+  const [jaringanKeretaGeoJSON, setJaringanKeretaGeoJSON] = useState<any>(null);
 
   // Auto-center & open popup jika ada focusId
   useEffect(() => {
@@ -121,13 +123,17 @@ export default function TourismMapPage() {
   }, []);
 
   useEffect(() => {
-    // Load GeoJSON batas administrasi
+    // Load GeoJSON batas administrasi, jalan, dan kereta
     Promise.all([
       fetch('/GeoJSON/batas_kabupaten.geojson').then(res => res.json()),
-      fetch('/GeoJSON/batas_kecamatan.geojson').then(res => res.json())
-    ]).then(([kabupatenData, kecamatanData]) => {
+      fetch('/GeoJSON/batas_kecamatan.geojson').then(res => res.json()),
+      fetch('/GeoJSON/jaringan_jalan_kebumen.geojson').then(res => res.json()),
+      fetch('/GeoJSON/jaringan_kereta.geojson').then(res => res.json()),
+    ]).then(([kabupatenData, kecamatanData, jalanData, keretaData]) => {
       setAdministrativeGeoJSON(kabupatenData);
       setKecamatanGeoJSON(kecamatanData);
+      setJaringanJalanGeoJSON(jalanData);
+      setJaringanKeretaGeoJSON(keretaData);
       console.log('Loaded Kabupaten:', kabupatenData);
       console.log('Loaded Kecamatan:', kecamatanData);
       if (!kabupatenData || kabupatenData.type !== 'FeatureCollection' || !Array.isArray(kabupatenData.features)) {
@@ -135,6 +141,12 @@ export default function TourismMapPage() {
       }
       if (!kecamatanData || kecamatanData.type !== 'FeatureCollection' || !Array.isArray(kecamatanData.features)) {
         console.error('GeoJSON Kecamatan tidak valid:', kecamatanData);
+      }
+      if (!jalanData || jalanData.type !== 'FeatureCollection' || !Array.isArray(jalanData.features)) {
+        console.error('GeoJSON Jaringan Jalan tidak valid:', jalanData);
+      }
+      if (!keretaData || keretaData.type !== 'FeatureCollection' || !Array.isArray(keretaData.features)) {
+        console.error('GeoJSON Jaringan Kereta tidak valid:', keretaData);
       }
     }).catch(error => {
       console.error('Error loading GeoJSON:', error);
@@ -631,8 +643,44 @@ export default function TourismMapPage() {
                 />
               </Source>
             )}
-
-            {/* Layer GeoJSON Batas Administrasi */}
+            {/* Layer Garis (Jalan & Kereta) */}
+            {selectedGeoJSONLayers.includes('jalan')
+              && jaringanJalanGeoJSON
+              && jaringanJalanGeoJSON.type === 'FeatureCollection'
+              && Array.isArray(jaringanJalanGeoJSON.features)
+              && jaringanJalanGeoJSON.features.length > 0 && (
+              <Source id="jaringan-jalan" type="geojson" data={jaringanJalanGeoJSON}>
+                <Layer
+                  id="jaringan-jalan-line"
+                  type="line"
+                  paint={{
+                    "line-color": "#FF9900",
+                    "line-width": 2.5,
+                    "line-opacity": 0.85
+                  }}
+                  filter={["==", "$type", "LineString"]}
+                />
+              </Source>
+            )}
+            {selectedGeoJSONLayers.includes('kereta')
+              && jaringanKeretaGeoJSON
+              && jaringanKeretaGeoJSON.type === 'FeatureCollection'
+              && Array.isArray(jaringanKeretaGeoJSON.features)
+              && jaringanKeretaGeoJSON.features.length > 0 && (
+              <Source id="jaringan-kereta" type="geojson" data={jaringanKeretaGeoJSON}>
+                <Layer
+                  id="jaringan-kereta-line"
+                  type="line"
+                  paint={{
+                    "line-color": "#222",
+                    "line-width": 2.5,
+                    "line-opacity": 0.85
+                  }}
+                  filter={["==", "$type", "LineString"]}
+                />
+              </Source>
+            )}
+            {/* Layer Polygon (Batas Kabupaten & Kecamatan) */}
             {selectedGeoJSONLayers.includes('kabupaten')
               && administrativeGeoJSON
               && administrativeGeoJSON.type === 'FeatureCollection'
@@ -659,8 +707,6 @@ export default function TourismMapPage() {
                 />
               </Source>
             )}
-
-            {/* Layer GeoJSON Batas Kecamatan */}
             {selectedGeoJSONLayers.includes('kecamatan')
               && kecamatanGeoJSON
               && kecamatanGeoJSON.type === 'FeatureCollection'
@@ -687,7 +733,6 @@ export default function TourismMapPage() {
                 />
               </Source>
             )}
-
             {/* Popup untuk data Kecamatan */}
             {kecamatanPopup && selectedKecamatan && (
               <MemoPopup
@@ -1102,14 +1147,23 @@ export default function TourismMapPage() {
           </button>
           {geoJSONMenuOpen && (
             <div className="mb-2 w-48 bg-white rounded-xl shadow-lg border border-gray-100 max-h-72 overflow-y-auto animate-fade-in-up">
-              <label className="flex items-center px-4 py-2 hover:bg-green-100 cursor-pointer">
+              <label className="flex items-center px-4 py-2 hover:bg-orange-100 cursor-pointer">
                 <input
                   type="checkbox"
-                  checked={selectedGeoJSONLayers.includes('kabupaten')}
-                  onChange={() => toggleGeoJSONLayer('kabupaten')}
+                  checked={selectedGeoJSONLayers.includes('jalan')}
+                  onChange={() => toggleGeoJSONLayer('jalan')}
                   className="mr-2"
                 />
-                Batas Kabupaten
+                Jaringan Jalan
+              </label>
+              <label className="flex items-center px-4 py-2 hover:bg-gray-200 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={selectedGeoJSONLayers.includes('kereta')}
+                  onChange={() => toggleGeoJSONLayer('kereta')}
+                  className="mr-2"
+                />
+                Jaringan Rel Kereta Api
               </label>
               <label className="flex items-center px-4 py-2 hover:bg-green-100 cursor-pointer">
                 <input
@@ -1120,6 +1174,16 @@ export default function TourismMapPage() {
                 />
                 Batas Kecamatan
               </label>
+              <label className="flex items-center px-4 py-2 hover:bg-green-100 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={selectedGeoJSONLayers.includes('kabupaten')}
+                  onChange={() => toggleGeoJSONLayer('kabupaten')}
+                  className="mr-2"
+                />
+                Batas Kabupaten
+              </label>
+              
             </div>
           )}
         </div>

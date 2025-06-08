@@ -50,8 +50,6 @@ export default function ConsumerDashboardPage() {
   const [user, setUser] = useState<UserData | null>(null);
   const [complaints, setComplaints] = useState<Complaint[]>([]);
   const [tickets, setTickets] = useState<BookingTicket[]>([]);
-  const [selectedTicket, setSelectedTicket] = useState<BookingTicket | null>(null);
-  const [showTicketModal, setShowTicketModal] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [showAllComplaints, setShowAllComplaints] = useState(false);
@@ -157,10 +155,6 @@ export default function ConsumerDashboardPage() {
               <History className="h-4 w-4" />
               Riwayat
             </TabsTrigger>
-            <TabsTrigger value="settings" className="flex items-center gap-2">
-              <Settings className="h-4 w-4" />
-              Pengaturan
-            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="profile">
@@ -183,7 +177,7 @@ export default function ConsumerDashboardPage() {
                       </div>
                       <div>
                         <p className="text-sm font-medium text-gray-500">Email</p>
-                        <p className="text-lg">{user.email}</p>
+                        <p className="text-lg break-all max-w-full">{user.email}</p>
                       </div>
                       <div>
                         <p className="text-sm font-medium text-gray-500">Nomor Telepon</p>
@@ -316,18 +310,6 @@ export default function ConsumerDashboardPage() {
                     )}
                   </>
                 )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="settings">
-            <Card>
-              <CardHeader>
-                <CardTitle>Pengaturan Akun</CardTitle>
-                <CardDescription>Kelola pengaturan akun Anda</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-500">Fitur pengaturan akun akan segera hadir</p>
               </CardContent>
             </Card>
           </TabsContent>

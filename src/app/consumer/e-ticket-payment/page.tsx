@@ -4,9 +4,24 @@ import { useRouter } from "next/navigation";
 import Navbar from "@/components/navbar/navbar";
 import Footer from "@/components/footer/footer";
 import Loading from "@/components/loading/loading";
-
-const CLOUDINARY_UPLOAD_PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
-const CLOUDINARY_CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+// Data rekening bank
+const BANKS = [
+  {
+    name: "BCA Pengelola Objek Wisata",
+    logo: "/bank/bca.png", // ganti dengan path/logo yang sesuai di public
+    number: "1935 0009 1200",
+  },
+  {
+    name: "BNI Pengelola Objek Wisata",
+    logo: "/bank/bni.png",
+    number: "1200 1935 0009",
+  },
+  {
+    name: "BRI Pengelola Objek Wisata",
+    logo: "/bank/bri.png",
+    number: "0009 1200 1935",
+  },
+];
 
 export default function ETicketPaymentPage() {
   const [booking, setBooking] = useState<any>(null);
@@ -21,6 +36,7 @@ export default function ETicketPaymentPage() {
   const [submitting, setSubmitting] = useState(false);
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [copiedIdx, setCopiedIdx] = useState<number|null>(null);
 
   useEffect(() => {
     // Ambil data booking dari cookie session
@@ -49,18 +65,6 @@ export default function ETicketPaymentPage() {
       };
       reader.readAsDataURL(file);
     }
-  };
-
-  const uploadToCloudinary = async (file: File) => {
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET!);
-    const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
-      method: "POST",
-      body: formData,
-    });
-    const data = await res.json();
-    return data.secure_url;
   };
 
   const generateKodeTiket = () => {
@@ -129,6 +133,12 @@ export default function ETicketPaymentPage() {
     }
   };
 
+  const handleCopy = (number: string, idx: number) => {
+    navigator.clipboard.writeText(number);
+    setCopiedIdx(idx);
+    setTimeout(() => setCopiedIdx(null), 1200);
+  };
+
   if (loading) return <><Navbar /><Loading message="Memuat halaman pembayaran..." /><Footer /></>;
   if (error) return <><Navbar /><div className="min-h-screen flex items-center justify-center text-red-500">{error}</div><Footer /></>;
   if (!booking) return null;
@@ -139,38 +149,65 @@ export default function ETicketPaymentPage() {
       <div className="bg-gradient-to-r from-[#5DB6E2] to-[#4A9BC7] py-8 px-4 md:px-0 shadow-lg">
         <h1 className="text-2xl md:text-3xl font-bold text-white text-center drop-shadow-md">Pembayaran E-Ticket</h1>
       </div>
-      <main className="max-w-4xl mx-auto px-4 py-10 grid grid-cols-1 md:grid-cols-2 gap-8 w-full items-start">
-        {/* Kiri: Detail Booking */}
-        <section className="bg-white rounded-3xl shadow-xl p-6 flex flex-col gap-6 mb-4">
-          <div className="font-bold text-xl mb-2 text-gray-800">Detail Pembayaran</div>
-          <div className="flex justify-between text-base"><span>Jumlah Pengunjung</span><span>{booking.quantity}</span></div>
-          <div className="flex justify-between text-base"><span>Harga Satuan</span><span>Rp. {Number(booking.harga_satuan).toLocaleString()}</span></div>
-          <div className="flex justify-between text-xl font-bold"><span>Total Harga</span><span className="text-[#F9A51A]">Rp. {Number(booking.total_amount).toLocaleString()}</span></div>
-        </section>
-        {/* Kanan: Form Pembayaran */}
-        <section className="bg-white rounded-3xl shadow-xl p-6 flex flex-col gap-6 mb-4">
-          <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-            <div className="font-bold text-xl mb-2 text-gray-800">Isikan Data Bank Anda</div>
-            <div className="flex flex-col gap-2">
-              <label className="text-sm font-semibold text-gray-700">Nama Bank</label>
-              <input className="border border-gray-300 rounded-lg px-4 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-yellow-300" placeholder="Nama Bank..." value={bankName} onChange={e => setBankName(e.target.value)} required />
-            </div>
-            <div className="flex flex-col gap-2">
-              <label className="text-sm font-semibold text-gray-700">Nama Akun Bank</label>
-              <input className="border border-gray-300 rounded-lg px-4 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-yellow-300" placeholder="Nama Akun..." value={bankAccount} onChange={e => setBankAccount(e.target.value)} required />
-            </div>
-            <div className="flex flex-col gap-2">
-              <label className="text-sm font-semibold text-gray-700">Nomor Rekening</label>
-              <input className="border border-gray-300 rounded-lg px-4 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-yellow-300" placeholder="Nomor Rekening..." value={bankNumber} onChange={e => setBankNumber(e.target.value)} required />
-            </div>
-            <div className="flex flex-col gap-2">
-              <label className="text-sm font-semibold text-gray-700">Upload Bukti Pembayaran</label>
-              <input type="file" accept="image/*" ref={fileInputRef} onChange={handleFileChange} className="border border-gray-300 rounded-lg px-4 py-2 bg-white" required />
-              {proofFile && <span className="text-xs text-gray-500">{proofFile.name}</span>}
-            </div>
-            <button type="submit" disabled={submitting} className="mt-2 bg-[#F9A51A] hover:bg-yellow-400 text-white font-bold py-3 rounded-lg text-lg shadow disabled:opacity-60">{submitting ? "Memproses..." : "Konfirmasi Pembayaran"}</button>
-          </form>
-        </section>
+      <main className="max-w-4xl mx-auto px-4 py-10 w-full">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+          {/* Kiri: Detail Booking + Transfer Bank */}
+          <div className="flex flex-col gap-6">
+            <section className="bg-white rounded-3xl shadow-xl p-6 flex flex-col gap-6">
+              <div className="font-bold text-xl mb-2 text-gray-800">Detail Pembayaran</div>
+              <div className="flex justify-between text-base"><span>Jumlah Pengunjung</span><span>{booking.quantity}</span></div>
+              <div className="flex justify-between text-base"><span>Harga Satuan</span><span>Rp. {Number(booking.harga_satuan).toLocaleString()}</span></div>
+              <div className="flex justify-between text-xl font-bold"><span>Total Harga</span><span className="text-[#F9A51A]">Rp. {Number(booking.total_amount).toLocaleString()}</span></div>
+            </section>
+            {/* Card Rekening Bank */}
+            <section>
+              <div className="bg-white rounded-2xl shadow border border-gray-100 p-4 md:p-6 max-w-full">
+                <div className="text-center font-bold text-lg md:text-xl text-[#1A2341] mb-4">Transfer Bank</div>
+                <div className="divide-y">
+                  {BANKS.map((bank, idx) => (
+                    <div key={bank.name} className="flex items-center gap-4 py-4 first:pt-0 last:pb-0">
+                      <img src={bank.logo} alt={bank.name} className="w-12 h-12 object-contain" />
+                      <div className="flex-1">
+                        <div className="text-gray-500 text-sm font-semibold">{bank.name}</div>
+                        <div className="font-bold text-lg tracking-wider text-[#1A2341]">{bank.number}</div>
+                      </div>
+                      <button
+                        className="text-[#F9A51A] font-bold hover:underline focus:outline-none px-2"
+                        onClick={() => handleCopy(bank.number, idx)}
+                      >
+                        {copiedIdx === idx ? "Copied!" : "Copy"}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </section>
+          </div>
+          {/* Kanan: Form Pembayaran */}
+          <section className="bg-white rounded-3xl shadow-xl p-6 flex flex-col gap-6">
+            <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+              <div className="font-bold text-xl mb-2 text-gray-800">Isikan Data Bank Anda</div>
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-semibold text-gray-700">Nama Bank</label>
+                <input className="border border-gray-300 rounded-lg px-4 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-yellow-300" placeholder="Nama Bank..." value={bankName} onChange={e => setBankName(e.target.value)} required />
+              </div>
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-semibold text-gray-700">Nama Akun Bank</label>
+                <input className="border border-gray-300 rounded-lg px-4 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-yellow-300" placeholder="Nama Akun..." value={bankAccount} onChange={e => setBankAccount(e.target.value)} required />
+              </div>
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-semibold text-gray-700">Nomor Rekening</label>
+                <input className="border border-gray-300 rounded-lg px-4 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-yellow-300" placeholder="Nomor Rekening..." value={bankNumber} onChange={e => setBankNumber(e.target.value)} required />
+              </div>
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-semibold text-gray-700">Upload Bukti Pembayaran</label>
+                <input type="file" accept="image/*" ref={fileInputRef} onChange={handleFileChange} className="border border-gray-300 rounded-lg px-4 py-2 bg-white" required />
+                {proofFile && <span className="text-xs text-gray-500">{proofFile.name}</span>}
+              </div>
+              <button type="submit" disabled={submitting} className="mt-2 bg-[#F9A51A] hover:bg-yellow-400 text-white font-bold py-3 rounded-lg text-lg shadow disabled:opacity-60">{submitting ? "Memproses..." : "Konfirmasi Pembayaran"}</button>
+            </form>
+          </section>
+        </div>
       </main>
       <Footer />
     </div>

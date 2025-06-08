@@ -240,7 +240,7 @@ function ComplaintList() {
         {/* Modal Edit */}
         {modalOpen && selected && (
           <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center px-2">
-            <div className="bg-white rounded-xl shadow-lg max-w-md w-full p-6 relative animate-fade-in">
+            <div className="bg-white rounded-xl shadow-lg max-w-md w-full p-6 relative animate-fade-in max-h-[90vh] overflow-y-auto">
               <button className="absolute top-2 right-2 text-gray-400 hover:text-black" onClick={() => setModalOpen(false)}><X className="w-5 h-5" /></button>
               <h2 className="text-lg font-bold mb-4 flex items-center gap-2"><MessageSquare className="w-5 h-5" /> Edit Pengaduan</h2>
               <div className="grid grid-cols-1 gap-2 mb-4">
@@ -248,7 +248,7 @@ function ComplaintList() {
                 <div className="flex items-center gap-2"><MapPin className="w-4 h-4" /> <span>{selected.destination?.name}</span></div>
                 <div className="flex items-center gap-2"><FileText className="w-4 h-4" /> <span>Jenis:</span> <span className="font-medium">{selected.jenis}</span></div>
                 <div className="flex items-center gap-2"><Phone className="w-4 h-4" /> <span>Narahubung:</span> <span className="font-medium">{selected.narahubung}</span></div>
-                <div className="flex items-center gap-2"><FileText className="w-4 h-4" /> <span>Deskripsi:</span> <span className="font-medium">{selected.deskripsi}</span></div>
+                <div className="flex items-center gap-2"><FileText className="w-4 h-4" /> <span>Deskripsi:</span> <span className="font-medium break-words whitespace-pre-line max-w-full">{selected.deskripsi}</span></div>
                 <div className="flex items-center gap-2"><Upload className="w-4 h-4" /> <span>Foto:</span> {selected.attachment ? <a href={selected.attachment} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">Lihat</a> : <span className="text-gray-400">-</span>}</div>
                 <div className="flex items-center gap-2"><MapPin className="w-4 h-4" /> <span>Lokasi:</span> <span className="font-medium">{selected.longitude}, {selected.latitude}</span></div>
                 <div className="flex items-center gap-2"><Calendar className="w-4 h-4" /> <span>Tanggal:</span> <span className="font-medium">{new Date(selected.createdAt).toLocaleString()}</span></div>
@@ -283,8 +283,7 @@ function ComplaintList() {
 
 export default function PengaduanAdminPage() {
   return (
-    <div className="space-y-6 min-h-screen bg-gray-50 py-8">
-      <h1 className="text-3xl font-bold tracking-tight mb-6 text-center">Dashboard Pengaduan Admin</h1>
+    <div className="space-y-6 min-h-screen bg-gray-50 py-1">
       <ComplaintList />
       <style jsx global>{`
         @keyframes fade-in {
