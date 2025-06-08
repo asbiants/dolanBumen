@@ -27,6 +27,12 @@ const statusOptions = [
   { value: "REJECTED", label: "Ditolak", color: "bg-red-200 text-red-800" },
 ];
 
+const JENIS_OPTIONS = [
+  { value: "LOST_FOUND", label: "Barang Hilang" },
+  { value: "KERUSAKAN", label: "Kerusakan" },
+  { value: "KECELAKAAN", label: "Kecelakaan" },
+];
+
 function getStatusBadge(status: string) {
   const opt = statusOptions.find(o => o.value === status);
   if (!opt) return <span className="px-2 py-1 rounded bg-gray-100 text-gray-500 text-xs">{status}</span>;
@@ -42,6 +48,12 @@ function ComplaintList() {
   const [alertMsg, setAlertMsg] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [filterDestination, setFilterDestination] = useState("");
+  const [filterJenis, setFilterJenis] = useState("");
+  const [filterStatus, setFilterStatus] = useState("");
+  const [destinations, setDestinations] = useState<any[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   useEffect(() => {
     fetch("/api/complaints", { credentials: "include" })
@@ -52,6 +64,14 @@ function ComplaintList() {
         setLoading(false);
       });
   }, []);
+
+  useEffect(() => {
+    fetch("/api/admin/tourist-destinations")
+      .then(async (res) => res.ok ? res.json() : { data: [] })
+      .then((res) => setDestinations(res.data || []));
+  }, []);
+
+  useEffect(() => { setCurrentPage(1); }, [filterDestination, filterJenis, filterStatus]);
 
   const openEdit = (complaint: Complaint) => {
     setSelected(complaint);
@@ -103,9 +123,46 @@ function ComplaintList() {
         <CardDescription>Semua pengaduan dari user.</CardDescription>
       </CardHeader>
       <CardContent>
+        {/* Filter Section */}
+        <div className="bg-gray-50 rounded-xl p-4 flex flex-col md:flex-row gap-4 mb-4 w-full shadow-sm">
+          <div className="flex flex-col gap-2 w-full md:w-60">
+            <label className="font-semibold text-gray-700" htmlFor="filter-destination">Destinasi:</label>
+            <select id="filter-destination" className="border border-gray-300 rounded-lg px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-yellow-300" value={filterDestination} onChange={e => setFilterDestination(e.target.value)}>
+              <option value="">Semua Destinasi</option>
+              {destinations.map((d: any) => (
+                <option key={d.id} value={d.name}>{d.name}</option>
+              ))}
+            </select>
+          </div>
+          <div className="flex flex-col gap-2 w-full md:w-48">
+            <label className="font-semibold text-gray-700" htmlFor="filter-jenis">Jenis:</label>
+            <select id="filter-jenis" className="border border-gray-300 rounded-lg px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-yellow-300" value={filterJenis} onChange={e => setFilterJenis(e.target.value)}>
+              <option value="">Semua Jenis</option>
+              {JENIS_OPTIONS.map(opt => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
+          </div>
+          <div className="flex flex-col gap-2 w-full md:w-48">
+            <label className="font-semibold text-gray-700" htmlFor="filter-status">Status:</label>
+            <select id="filter-status" className="border border-gray-300 rounded-lg px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-yellow-300" value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
+              <option value="">Semua Status</option>
+              {statusOptions.map(opt => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
+          </div>
+        </div>
         {loading ? <div>Loading...</div> : (
           <div className="overflow-x-auto">
-            {complaints.length === 0 && <div className="text-center py-8 text-gray-500">Tidak ada pengaduan.</div>}
+            {(() => {
+              const filtered = complaints.filter(c =>
+                (!filterDestination || c.destination?.name === filterDestination) &&
+                (!filterJenis || c.jenis === filterJenis) &&
+                (!filterStatus || c.status === filterStatus)
+              );
+              return filtered.length === 0 && <div className="text-center py-8 text-gray-500">Tidak ada pengaduan.</div>;
+            })()}
             <table className="w-full border rounded-lg overflow-hidden text-sm">
               <thead className="bg-gray-100">
                 <tr>
@@ -118,25 +175,66 @@ function ComplaintList() {
                 </tr>
               </thead>
               <tbody>
-                {complaints.map((c) => (
-                  <tr key={c.id} className="border-b hover:bg-gray-50">
-                    <td className="py-2 px-3">{c.user?.name}</td>
-                    <td className="py-2 px-3">{c.destination?.name}</td>
-                    <td className="py-2 px-3">{c.jenis}</td>
-                    <td className="py-2 px-3">{getStatusBadge(c.status)}</td>
-                    <td className="py-2 px-3 max-w-xs truncate">{c.response || <span className="text-gray-400">-</span>}</td>
-                    <td className="py-2 px-3 flex gap-2 items-center">
-                      <Button size="sm" variant="outline" onClick={() => openEdit(c)}>
-                        Edit
-                      </Button>
-                      <Button size="sm" variant="destructive" onClick={() => handleDelete(c.id)} disabled={deleting}>
-                        <Trash2 className="w-4 h-4 mr-1" /> Hapus
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
+                {(() => {
+                  const filtered = complaints.filter(c =>
+                    (!filterDestination || c.destination?.name === filterDestination) &&
+                    (!filterJenis || c.jenis === filterJenis) &&
+                    (!filterStatus || c.status === filterStatus)
+                  );
+                  const paged = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+                  return paged.map((c) => (
+                    <tr key={c.id} className="border-b hover:bg-gray-50">
+                      <td className="py-2 px-3">{c.user?.name}</td>
+                      <td className="py-2 px-3">{c.destination?.name}</td>
+                      <td className="py-2 px-3">{c.jenis}</td>
+                      <td className="py-2 px-3">{getStatusBadge(c.status)}</td>
+                      <td className="py-2 px-3 max-w-xs truncate">{c.response || <span className="text-gray-400">-</span>}</td>
+                      <td className="py-2 px-3 flex gap-2 items-center">
+                        <Button size="sm" variant="outline" onClick={() => openEdit(c)}>
+                          Edit
+                        </Button>
+                        <Button size="sm" variant="destructive" onClick={() => handleDelete(c.id)} disabled={deleting}>
+                          <Trash2 className="w-4 h-4 mr-1" /> Hapus
+                        </Button>
+                      </td>
+                    </tr>
+                  ));
+                })()}
               </tbody>
             </table>
+            {/* Pagination */}
+            {(() => {
+              const filtered = complaints.filter(c =>
+                (!filterDestination || c.destination?.name === filterDestination) &&
+                (!filterJenis || c.jenis === filterJenis) &&
+                (!filterStatus || c.status === filterStatus)
+              );
+              if (filtered.length > itemsPerPage) {
+                const totalPages = Math.ceil(filtered.length / itemsPerPage);
+                return (
+                  <div className="flex flex-wrap justify-between items-center mt-4 gap-2">
+                    <div className="text-sm text-gray-600">
+                      Menampilkan {(currentPage - 1) * itemsPerPage + 1} - {Math.min(currentPage * itemsPerPage, filtered.length)} dari {filtered.length}
+                    </div>
+                    <div className="flex gap-2 flex-wrap">
+                      <Button size="sm" variant="outline" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>Previous</Button>
+                      {Array.from({ length: totalPages }, (_, i) => (
+                        <Button
+                          key={i}
+                          size="sm"
+                          variant={currentPage === i + 1 ? "default" : "outline"}
+                          onClick={() => setCurrentPage(i + 1)}
+                        >
+                          {i + 1}
+                        </Button>
+                      ))}
+                      <Button size="sm" variant="outline" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>Next</Button>
+                    </div>
+                  </div>
+                );
+              }
+              return null;
+            })()}
           </div>
         )}
         {/* Modal Edit */}

@@ -122,6 +122,8 @@ export default function TouristDestinationsPage() {
   });
   const [isUpdatingTicket, setIsUpdatingTicket] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   const fetchData = async () => {
     try {
@@ -502,92 +504,77 @@ export default function TouristDestinationsPage() {
                   {selectedDestination ? "Edit Destination" : "Add New Destination"}
                 </DialogTitle>
               </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="name">Name</Label>
-                    <Input
-                      id="name"
-                      value={formData.name}
-                      onChange={(e) =>
-                        setFormData({ ...formData, name: e.target.value })
-                      }
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="categoryName">Category</Label>
-                    <Select
-                      value={formData.categoryName}
-                      onValueChange={(value) =>
-                        setFormData({ ...formData, categoryName: value })
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select category" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {categories.map((category) => (
-                          <SelectItem key={category.id} value={category.name}>
-                            {category.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+              <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="col-span-1">
+                  <Label htmlFor="name">Name</Label>
+                  <Input
+                    id="name"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    required
+                    className="w-full"
+                  />
                 </div>
-
-                <div>
+                <div className="col-span-1">
+                  <Label htmlFor="categoryName">Category</Label>
+                  <Select
+                    value={formData.categoryName}
+                    onValueChange={(value) => setFormData({ ...formData, categoryName: value })}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categories.map((category) => (
+                        <SelectItem key={category.id} value={category.name}>
+                          {category.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="col-span-1 md:col-span-2">
                   <Label htmlFor="description">Description</Label>
                   <Textarea
                     id="description"
                     value={formData.description}
-                    onChange={(e) =>
-                      setFormData({ ...formData, description: e.target.value })
-                    }
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    className="w-full"
                   />
                 </div>
-
-                <div>
+                <div className="col-span-1 md:col-span-2">
                   <Label htmlFor="address">Address</Label>
                   <Input
                     id="address"
                     value={formData.address}
-                    onChange={(e) =>
-                      setFormData({ ...formData, address: e.target.value })
-                    }
+                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                    className="w-full"
                   />
                 </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="openingTime">Opening Time</Label>
-                    <Input
-                      id="openingTime"
-                      type="time"
-                      value={formData.openingTime}
-                      onChange={(e) =>
-                        setFormData({ ...formData, openingTime: e.target.value })
-                      }
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="closingTime">Closing Time</Label>
-                    <Input
-                      id="closingTime"
-                      type="time"
-                      value={formData.closingTime}
-                      onChange={(e) =>
-                        setFormData({ ...formData, closingTime: e.target.value })
-                      }
-                    />
-                  </div>
+                <div className="col-span-1">
+                  <Label htmlFor="openingTime">Opening Time</Label>
+                  <Input
+                    id="openingTime"
+                    type="time"
+                    value={formData.openingTime}
+                    onChange={(e) => setFormData({ ...formData, openingTime: e.target.value })}
+                    className="w-full"
+                  />
                 </div>
-
-                <div>
+                <div className="col-span-1">
+                  <Label htmlFor="closingTime">Closing Time</Label>
+                  <Input
+                    id="closingTime"
+                    type="time"
+                    value={formData.closingTime}
+                    onChange={(e) => setFormData({ ...formData, closingTime: e.target.value })}
+                    className="w-full"
+                  />
+                </div>
+                <div className="col-span-1 md:col-span-2">
                   <Label>Location</Label>
                   <p className="text-sm text-gray-500 mb-2">Click on the map below to pick a location.</p>
-                  <div className="h-[300px] rounded-lg overflow-hidden">
+                  <div className="h-[300px] rounded-lg overflow-hidden w-full">
                     <MapboxMap
                       mapboxAccessToken={process.env.NEXT_PUBLIC_MAPBOX_TOKEN}
                       initialViewState={{
@@ -609,16 +596,15 @@ export default function TouristDestinationsPage() {
                       )}
                     </MapboxMap>
                   </div>
-                  <div className="grid grid-cols-2 gap-4 mt-2">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
                     <div>
                       <Label htmlFor="latitude">Latitude</Label>
                       <Input
                         id="latitude"
                         value={formData.latitude}
-                        onChange={(e) =>
-                          setFormData({ ...formData, latitude: e.target.value })
-                        }
+                        onChange={(e) => setFormData({ ...formData, latitude: e.target.value })}
                         placeholder="Enter latitude or click map to pick"
+                        className="w-full"
                       />
                     </div>
                     <div>
@@ -626,24 +612,23 @@ export default function TouristDestinationsPage() {
                       <Input
                         id="longitude"
                         value={formData.longitude}
-                        onChange={(e) =>
-                          setFormData({ ...formData, longitude: e.target.value })
-                        }
+                        onChange={(e) => setFormData({ ...formData, longitude: e.target.value })}
                         placeholder="Enter longitude or click map to pick"
+                        className="w-full"
                       />
                     </div>
                   </div>
                 </div>
-
-                <div>
+                <div className="col-span-1 md:col-span-2">
                   <Label htmlFor="thumbnail">Thumbnail</Label>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-col sm:flex-row items-center gap-2 w-full">
                     <Input
                       id="thumbnail"
                       type="file"
                       accept="image/*"
                       onChange={handleFileUpload}
                       disabled={isUploading}
+                      className="w-full"
                     />
                     {formData.thumbnail && (
                       <img
@@ -654,10 +639,11 @@ export default function TouristDestinationsPage() {
                     )}
                   </div>
                 </div>
-
-                <Button type="submit" className="w-full">
-                  {selectedDestination ? "Update" : "Create"}
-                </Button>
+                <div className="col-span-1 md:col-span-2">
+                  <Button type="submit" className="w-full">
+                    {selectedDestination ? "Update" : "Create"}
+                  </Button>
+                </div>
               </form>
             </DialogContent>
           </Dialog>
@@ -705,6 +691,7 @@ export default function TouristDestinationsPage() {
       {isLoading ? (
         <div>Loading...</div>
       ) : (
+        <>
         <Table>
           <TableHeader>
             <TableRow>
@@ -717,68 +704,91 @@ export default function TouristDestinationsPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredDestinations.map((destination) => (
-              <TableRow key={destination.id}>
-                <TableCell>{destination.name}</TableCell>
-                <TableCell>{destination.category?.name}</TableCell>
-                <TableCell>{destination.address}</TableCell>
-                <TableCell>{destination.status}</TableCell>
-                <TableCell>
-                  {destination.thumbnailUrl ? (
-                    <img
-                      src={destination.thumbnailUrl}
-                      alt={destination.name}
-                      className="w-8 h-8 object-cover rounded"
-                    />
-                  ) : (
-                    <div className="w-8 h-8 bg-gray-200 rounded flex items-center justify-center">
-                      <span className="text-xs text-gray-500">No image</span>
+            {filteredDestinations
+              .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+              .map((destination) => (
+                <TableRow key={destination.id}>
+                  <TableCell>{destination.name}</TableCell>
+                  <TableCell>{destination.category?.name}</TableCell>
+                  <TableCell>{destination.address}</TableCell>
+                  <TableCell>{destination.status}</TableCell>
+                  <TableCell>
+                    {destination.thumbnailUrl ? (
+                      <img
+                        src={destination.thumbnailUrl}
+                        alt={destination.name}
+                        className="w-8 h-8 object-cover rounded"
+                      />
+                    ) : (
+                      <div className="w-8 h-8 bg-gray-200 rounded flex items-center justify-center">
+                        <span className="text-xs text-gray-500">No image</span>
+                      </div>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleView(destination)}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleEdit(destination)}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDelete(destination.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                      <DestinationPhotosDialog
+                        destinationId={destination.id}
+                        destinationName={destination.name}
+                      />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                          setSelectedDestinationForTickets(destination);
+                          setIsTicketDialogOpen(true);
+                        }}
+                      >
+                        <Ticket className="h-4 w-4" />
+                      </Button>
                     </div>
-                  )}
-                </TableCell>
-                <TableCell>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleView(destination)}
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleEdit(destination)}
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleDelete(destination.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                    <DestinationPhotosDialog
-                      destinationId={destination.id}
-                      destinationName={destination.name}
-                    />
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => {
-                        setSelectedDestinationForTickets(destination);
-                        setIsTicketDialogOpen(true);
-                      }}
-                    >
-                      <Ticket className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
+                  </TableCell>
+                </TableRow>
+              ))}
           </TableBody>
         </Table>
+        {/* Pagination */}
+        <div className="flex flex-wrap justify-between items-center mt-4 gap-2">
+          <div className="text-sm text-gray-600">
+            Showing {(currentPage - 1) * itemsPerPage + 1} - {Math.min(currentPage * itemsPerPage, filteredDestinations.length)} of {filteredDestinations.length}
+          </div>
+          <div className="flex gap-2 flex-wrap">
+            <Button size="sm" variant="outline" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>Previous</Button>
+            {Array.from({ length: Math.ceil(filteredDestinations.length / itemsPerPage) }, (_, i) => (
+              <Button
+                key={i}
+                size="sm"
+                variant={currentPage === i + 1 ? "default" : "outline"}
+                onClick={() => setCurrentPage(i + 1)}
+              >
+                {i + 1}
+              </Button>
+            ))}
+            <Button size="sm" variant="outline" onClick={() => setCurrentPage(p => Math.min(Math.ceil(filteredDestinations.length / itemsPerPage), p + 1))} disabled={currentPage === Math.ceil(filteredDestinations.length / itemsPerPage)}>Next</Button>
+          </div>
+        </div>
+        </>
       )}
       <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -896,37 +906,24 @@ export default function TouristDestinationsPage() {
                 </Table>
               )}
               <h3 className="text-lg font-semibold">Add New Ticket</h3>
-              <form onSubmit={handleAddTicketSubmit} className="space-y-4">
-                <div>
+              <form onSubmit={handleAddTicketSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="col-span-1">
                   <Label htmlFor="new-ticket-name">Name</Label>
                   <Input
                     id="new-ticket-name"
                     value={newTicketFormData.name}
-                    onChange={(e) =>
-                      setNewTicketFormData({ ...newTicketFormData, name: e.target.value })
-                    }
+                    onChange={(e) => setNewTicketFormData({ ...newTicketFormData, name: e.target.value })}
                     required
+                    className="w-full"
                   />
                 </div>
-                <div>
-                  <Label htmlFor="new-ticket-description">Description</Label>
-                  <Textarea
-                    id="new-ticket-description"
-                    value={newTicketFormData.description}
-                    onChange={(e) =>
-                      setNewTicketFormData({ ...newTicketFormData, description: e.target.value })
-                    }
-                  />
-                </div>
-                <div>
+                <div className="col-span-1">
                   <Label htmlFor="new-ticket-type">Ticket Type</Label>
                   <Select
                     value={newTicketFormData.ticketType}
-                    onValueChange={(value) =>
-                      setNewTicketFormData({ ...newTicketFormData, ticketType: value })
-                    }
+                    onValueChange={(value) => setNewTicketFormData({ ...newTicketFormData, ticketType: value })}
                   >
-                    <SelectTrigger id="new-ticket-type">
+                    <SelectTrigger className="w-full">
                       <SelectValue placeholder="Select ticket type" />
                     </SelectTrigger>
                     <SelectContent>
@@ -936,37 +933,44 @@ export default function TouristDestinationsPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="new-ticket-price">Price</Label>
-                    <Input
-                      id="new-ticket-price"
-                      type="number"
-                      value={newTicketFormData.price}
-                      onChange={(e) =>
-                        setNewTicketFormData({ ...newTicketFormData, price: e.target.value })
-                      }
-                      required
-                      step="0.01"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="new-ticket-quota">Quota Per Day</Label>
-                    <Input
-                      id="new-ticket-quota"
-                      type="number"
-                      value={newTicketFormData.quotaPerDay}
-                      onChange={(e) =>
-                        setNewTicketFormData({ ...newTicketFormData, quotaPerDay: e.target.value })
-                      }
-                      required
-                      step="1"
-                    />
-                  </div>
+                <div className="col-span-1 md:col-span-2">
+                  <Label htmlFor="new-ticket-description">Description</Label>
+                  <Textarea
+                    id="new-ticket-description"
+                    value={newTicketFormData.description}
+                    onChange={(e) => setNewTicketFormData({ ...newTicketFormData, description: e.target.value })}
+                    className="w-full"
+                  />
                 </div>
-                <Button type="submit" disabled={isAddingTicket}>
-                  {isAddingTicket ? "Adding..." : "Add Ticket"}
-                </Button>
+                <div className="col-span-1">
+                  <Label htmlFor="new-ticket-price">Price</Label>
+                  <Input
+                    id="new-ticket-price"
+                    type="number"
+                    value={newTicketFormData.price}
+                    onChange={(e) => setNewTicketFormData({ ...newTicketFormData, price: e.target.value })}
+                    required
+                    step="0.01"
+                    className="w-full"
+                  />
+                </div>
+                <div className="col-span-1">
+                  <Label htmlFor="new-ticket-quota">Quota Per Day</Label>
+                  <Input
+                    id="new-ticket-quota"
+                    type="number"
+                    value={newTicketFormData.quotaPerDay}
+                    onChange={(e) => setNewTicketFormData({ ...newTicketFormData, quotaPerDay: e.target.value })}
+                    required
+                    step="1"
+                    className="w-full"
+                  />
+                </div>
+                <div className="col-span-1 md:col-span-2">
+                  <Button type="submit" disabled={isAddingTicket} className="w-full">
+                    {isAddingTicket ? "Adding..." : "Add Ticket"}
+                  </Button>
+                </div>
               </form>
             </div>
           )}

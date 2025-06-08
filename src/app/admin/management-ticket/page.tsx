@@ -13,6 +13,7 @@ interface BookingTicket {
   user: { id: string; name: string; email: string };
   tourist_destination: { id: string; name: string };
   pengunjung: { id: number; nama: string; usia: number; email: string }[];
+  proof?: string;
 }
 
 export default function AdminManagementTicketPage() {
@@ -25,6 +26,10 @@ export default function AdminManagementTicketPage() {
   const [destinations, setDestinations] = useState<any[]>([]);
   const [filterDestination, setFilterDestination] = useState("");
   const [showAll, setShowAll] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [showProof, setShowProof] = useState(false);
+  const [proofUrl, setProofUrl] = useState<string | null>(null);
 
   useEffect(() => {
     // Fetch all destinations for filter dropdown
@@ -80,23 +85,29 @@ export default function AdminManagementTicketPage() {
       <main className="max-w-6xl mx-auto px-2 md:px-4 pb-10 w-full">
         <div className="bg-white/95 rounded-3xl shadow-xl p-6 md:p-8 flex flex-col gap-8 border border-gray-100 mb-8">
           <h2 className="text-xl font-bold mb-4 text-gray-800">Daftar Semua Tiket</h2>
-          <div className="flex flex-col md:flex-row gap-4 mb-4 items-center">
-            <div className="flex items-center gap-2">
-              <label className="font-semibold text-gray-700">Cari Kode Tiket:</label>
-              <input type="text" className="border border-gray-300 rounded-lg px-3 py-2" placeholder="Masukkan kode tiket" value={searchCode} onChange={e => setSearchCode(e.target.value)} />
+          <div className="bg-gray-50 rounded-xl p-4 flex flex-col md:flex-row gap-4 mb-4 w-full shadow-sm">
+            <div className="flex flex-col gap-2 w-full md:w-72">
+              <label className="font-semibold text-gray-700" htmlFor="search-ticket">Cari Kode Tiket:</label>
+              <input id="search-ticket" type="text" className="border border-gray-300 rounded-lg px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-yellow-300" placeholder="Masukkan kode tiket" value={searchCode} onChange={e => setSearchCode(e.target.value)} />
             </div>
-            <div className="flex items-center gap-2">
-              <label className="font-semibold text-gray-700">Filter Destinasi:</label>
-              <select className="border border-gray-300 rounded-lg px-3 py-2" value={filterDestination} onChange={e => setFilterDestination(e.target.value)}>
+            <div className="flex flex-col gap-2 w-full md:w-72">
+              <label className="font-semibold text-gray-700" htmlFor="filter-destination">Filter Destinasi:</label>
+              <select id="filter-destination" className="border border-gray-300 rounded-lg px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-yellow-300" value={filterDestination} onChange={e => setFilterDestination(e.target.value)}>
                 <option value="">Semua Destinasi</option>
                 {destinations.map((d: any) => (
                   <option key={d.id} value={d.id}>{d.name}</option>
                 ))}
               </select>
             </div>
-            {(searchCode || filterDestination) && (
-              <button className="ml-2 px-4 py-2 rounded bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold" onClick={() => { setSearchCode(""); setFilterDestination(""); }}>Reset</button>
-            )}
+            <div className="flex w-full md:w-auto md:self-end">
+              <button
+                className="px-4 py-2 rounded-lg bg-yellow-500 hover:bg-yellow-600 text-white font-semibold w-full md:w-auto h-[42px] transition-colors duration-150"
+                style={{ minWidth: 90 }}
+                onClick={() => { setSearchCode(""); setFilterDestination(""); }}
+              >
+                Reset
+              </button>
+            </div>
           </div>
           {loading ? (
             <Loading message="Memuat data tiket..." />
@@ -117,11 +128,12 @@ export default function AdminManagementTicketPage() {
                       <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Tanggal</th>
                       <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
                       <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Pengunjung</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Proof</th>
                       <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Aksi</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {(showAll ? tickets : tickets.slice(0, 5)).map((ticket) => (
+                    {tickets.slice((currentPage-1)*itemsPerPage, currentPage*itemsPerPage).map((ticket) => (
                       <tr key={ticket.id} className="hover:bg-yellow-50 transition-colors">
                         <td className="px-4 py-2 font-mono font-bold text-yellow-700">{ticket.booking_trx_id}</td>
                         <td className="px-4 py-2">{ticket.user?.name || '-'}</td>
@@ -141,6 +153,15 @@ export default function AdminManagementTicketPage() {
                           </div>
                         </td>
                         <td className="px-4 py-2 text-center">{ticket.pengunjung.length}</td>
+                        <td className="px-4 py-2 text-center">
+                          {ticket.proof ? (
+                            <button onClick={() => { setProofUrl(ticket.proof ?? null); setShowProof(true); }} className="p-2 rounded-full hover:bg-gray-100" title="Lihat Proof">
+                              <Eye className="h-5 w-5 text-blue-600" />
+                            </button>
+                          ) : (
+                            <span className="text-gray-400">-</span>
+                          )}
+                        </td>
                         <td className="px-4 py-2">
                           <button
                             onClick={() => { setSelectedTicket(ticket); setShowModal(true); }}
@@ -155,14 +176,25 @@ export default function AdminManagementTicketPage() {
                   </tbody>
                 </table>
               </div>
-              {tickets.length > 5 && (
-                <div className="flex justify-center mt-4">
-                  <button
-                    className="px-6 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold shadow"
-                    onClick={() => setShowAll((v) => !v)}
-                  >
-                    {showAll ? "Tampilkan Sedikit" : "Tampilkan Semua"}
-                  </button>
+              {/* Pagination */}
+              {tickets.length > itemsPerPage && (
+                <div className="flex flex-wrap justify-between items-center mt-4 gap-2">
+                  <div className="text-sm text-gray-600">
+                    Showing {(currentPage - 1) * itemsPerPage + 1} - {Math.min(currentPage * itemsPerPage, tickets.length)} of {tickets.length}
+                  </div>
+                  <div className="flex gap-2 flex-wrap">
+                    <button className="px-3 py-1 rounded border text-sm" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>Previous</button>
+                    {Array.from({ length: Math.ceil(tickets.length / itemsPerPage) }, (_, i) => (
+                      <button
+                        key={i}
+                        className={`px-3 py-1 rounded border text-sm ${currentPage === i + 1 ? 'bg-yellow-400 text-white' : 'bg-white text-gray-700'}`}
+                        onClick={() => setCurrentPage(i + 1)}
+                      >
+                        {i + 1}
+                      </button>
+                    ))}
+                    <button className="px-3 py-1 rounded border text-sm" onClick={() => setCurrentPage(p => Math.min(Math.ceil(tickets.length / itemsPerPage), p + 1))} disabled={currentPage === Math.ceil(tickets.length / itemsPerPage)}>Next</button>
+                  </div>
                 </div>
               )}
             </>
@@ -213,6 +245,32 @@ export default function AdminManagementTicketPage() {
               <button
                 className="mt-4 w-full bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2 rounded-lg text-base"
                 onClick={() => setShowModal(false)}
+              >
+                Tutup
+              </button>
+            </div>
+          </div>
+        )}
+        {/* Modal Proof */}
+        {showProof && proofUrl && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+            <div className="bg-white rounded-xl shadow-lg max-w-lg w-full p-6 relative max-h-[90vh] flex flex-col">
+              <button
+                className="absolute top-2 right-2 text-gray-400 hover:text-gray-700 focus:outline-none"
+                onClick={() => setShowProof(false)}
+                aria-label="Tutup"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-7 h-7">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+              <div className="overflow-y-auto flex-1 pr-2 flex flex-col items-center justify-center">
+                <h3 className="text-lg font-bold mb-4">Proof Pembayaran</h3>
+                <img src={proofUrl} alt="Proof" className="max-w-full max-h-[60vh] rounded shadow" />
+              </div>
+              <button
+                className="mt-4 w-full bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2 rounded-lg text-base"
+                onClick={() => setShowProof(false)}
               >
                 Tutup
               </button>

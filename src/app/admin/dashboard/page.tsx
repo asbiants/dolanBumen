@@ -237,7 +237,7 @@ function ComplaintStats({ complaints }: { complaints: Complaint[] }) {
         <CardDescription>Distribusi pengaduan berdasarkan jenis</CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="h-[300px] flex items-center justify-center">
+        <div className="flex items-center justify-center">
           {totalComplaints > 0 ? (
             <Pie data={data} options={options} />
           ) : (
@@ -448,7 +448,7 @@ export default function AdminDashboardPage() {
             <CardTitle className="text-base font-semibold">Distribusi Status Pengaduan</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="h-64 flex items-center justify-center">
+            <div className="flex items-center justify-center">
               <Pie data={statusPieData} />
             </div>
           </CardContent>
@@ -458,7 +458,7 @@ export default function AdminDashboardPage() {
             <CardTitle className="text-base font-semibold">Pengaduan per Jenis</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="h-64 flex items-center justify-center">
+            <div className="flex items-center justify-center">
               <Bar data={typeBarData} options={{responsive:true, plugins:{legend:{display:false}}}} />
             </div>
           </CardContent>

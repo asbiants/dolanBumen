@@ -98,6 +98,19 @@ export default function AdminManagementVisitorsPage() {
       .finally(() => setLoading(false));
   }, [tab, filterDate, searchCode]);
 
+  // Group and sum vehicle data by jenis
+  function groupAndSumVehicleData(data: any[]) {
+    const map: Record<string, { jenis: string; total: number }> = {};
+    data.forEach(item => {
+      if (!map[item.jenis]) {
+        map[item.jenis] = { jenis: item.jenis, total: 0 };
+      }
+      map[item.jenis].total += Number(item.total) || 0;
+    });
+    return Object.values(map);
+  }
+  const groupedVehicleData = groupAndSumVehicleData(vehicleData);
+
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-[#e0e7ef] via-[#f6f6f6] to-[#e0e7ef]">
       <div className="pt-6 pb-2 px-4 md:px-0">
@@ -186,10 +199,10 @@ export default function AdminManagementVisitorsPage() {
             <>
               <h2 className="text-xl font-bold mb-4 text-gray-800">Jumlah Kendaraan per Jenis</h2>
               {/* Filter destinasi */}
-              <div className="mb-6 flex flex-col md:flex-row gap-4 items-center">
+              <div className="mb-6 flex flex-col md:flex-row gap-4 items-center w-full">
                 <label className="font-semibold text-gray-700">Pilih Destinasi Wisata:</label>
                 <select
-                  className="border border-gray-300 rounded-lg px-4 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-yellow-300"
+                  className="border border-gray-300 rounded-lg px-4 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-yellow-300 w-full md:w-auto"
                   value={selectedDestination}
                   onChange={e => setSelectedDestination(e.target.value)}
                 >
@@ -214,7 +227,7 @@ export default function AdminManagementVisitorsPage() {
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie
-                          data={vehicleData}
+                          data={groupedVehicleData}
                           dataKey="total"
                           nameKey="jenis"
                           cx="50%"
@@ -222,7 +235,7 @@ export default function AdminManagementVisitorsPage() {
                           outerRadius={120}
                           label={({ name, percent }) => `${VEHICLE_LABELS[name as string] || name} (${(percent * 100).toFixed(0)}%)`}
                         >
-                          {vehicleData.map((entry, idx) => (
+                          {groupedVehicleData.map((entry, idx) => (
                             <Cell key={`cell-${idx}`} fill={VEHICLE_COLORS[idx % VEHICLE_COLORS.length]} />
                           ))}
                         </Pie>
@@ -232,7 +245,7 @@ export default function AdminManagementVisitorsPage() {
                     </ResponsiveContainer>
                   </div>
                   {/* Tabel Data Kendaraan */}
-                  <div className="overflow-x-auto">
+                  <div className="overflow-x-auto w-full">
                     <table className="min-w-full divide-y divide-gray-200">
                       <thead>
                         <tr>
@@ -241,7 +254,7 @@ export default function AdminManagementVisitorsPage() {
                         </tr>
                       </thead>
                       <tbody className="bg-white divide-y divide-gray-200">
-                        {vehicleData.map((row, idx) => (
+                        {groupedVehicleData.map((row, idx) => (
                           <tr key={row.jenis}>
                             <td className="px-4 py-2 font-semibold text-gray-800">{VEHICLE_LABELS[row.jenis] || row.jenis}</td>
                             <td className="px-4 py-2 text-blue-700 font-bold text-lg">{row.total}</td>
