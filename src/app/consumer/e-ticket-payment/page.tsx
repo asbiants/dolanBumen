@@ -4,11 +4,13 @@ import { useRouter } from "next/navigation";
 import Navbar from "@/components/navbar/navbar";
 import Footer from "@/components/footer/footer";
 import Loading from "@/components/loading/loading";
-// Data rekening bank
+
+/* Identifikasi Nomor Rekening yang dituju pada sistem pembaran
+Nomor Rekening Dummy */
 const BANKS = [
   {
     name: "BCA Pengelola Objek Wisata",
-    logo: "/bank/bca.png", // ganti dengan path/logo yang sesuai di public
+    logo: "/bank/bca.png",
     number: "1935 0009 1200",
   },
   {
@@ -36,10 +38,13 @@ export default function ETicketPaymentPage() {
   const [submitting, setSubmitting] = useState(false);
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [copiedIdx, setCopiedIdx] = useState<number|null>(null);
+  const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
 
   useEffect(() => {
-    // Ambil data booking dari cookie session
+    /* Fetch data dari API Session untuk menyimpan data booking
+    sebelum di kirim ke database harus melalui proses pengisian detail payment
+    API/
+    */
     fetch("/api/booking/session", { method: "GET" })
       .then(async (res) => {
         if (!res.ok) throw new Error("Gagal ambil data booking");
@@ -57,7 +62,7 @@ export default function ETicketPaymentPage() {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       setProofFile(file);
-      
+
       // Convert file to base64
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -85,14 +90,14 @@ export default function ETicketPaymentPage() {
     try {
       // Generate kode tiket
       const kodeTiket = generateKodeTiket();
-      
+
       // Prepare booking data
       const bookingData = {
         ...booking,
         tanggal: new Date(booking.tanggal).toISOString(),
         jumlah_kendaraan: parseInt(booking.jumlah_kendaraan, 10),
         quantity: parseInt(booking.quantity, 10),
-        harga_satuan: booking.harga_satuan ? parseInt(booking.harga_satuan, 10) : (booking.total_amount && booking.quantity ? Math.floor(booking.total_amount / booking.quantity) : 0),
+        harga_satuan: booking.harga_satuan ? parseInt(booking.harga_satuan, 10) : booking.total_amount && booking.quantity ? Math.floor(booking.total_amount / booking.quantity) : 0,
         total_amount: parseInt(booking.total_amount, 10),
         customer_bank_name: bankName,
         customer_bank_account: bankAccount,
@@ -139,8 +144,22 @@ export default function ETicketPaymentPage() {
     setTimeout(() => setCopiedIdx(null), 1200);
   };
 
-  if (loading) return <><Navbar /><Loading message="Memuat halaman pembayaran..." /><Footer /></>;
-  if (error) return <><Navbar /><div className="min-h-screen flex items-center justify-center text-red-500">{error}</div><Footer /></>;
+  if (loading)
+    return (
+      <>
+        <Navbar />
+        <Loading message="Memuat halaman pembayaran..." />
+        <Footer />
+      </>
+    );
+  if (error)
+    return (
+      <>
+        <Navbar />
+        <div className="min-h-screen flex items-center justify-center text-red-500">{error}</div>
+        <Footer />
+      </>
+    );
   if (!booking) return null;
 
   return (
@@ -155,9 +174,18 @@ export default function ETicketPaymentPage() {
           <div className="flex flex-col gap-6">
             <section className="bg-white rounded-3xl shadow-xl p-6 flex flex-col gap-6">
               <div className="font-bold text-xl mb-2 text-gray-800">Detail Pembayaran</div>
-              <div className="flex justify-between text-base"><span>Jumlah Pengunjung</span><span>{booking.quantity}</span></div>
-              <div className="flex justify-between text-base"><span>Harga Satuan</span><span>Rp. {Number(booking.harga_satuan).toLocaleString()}</span></div>
-              <div className="flex justify-between text-xl font-bold"><span>Total Harga</span><span className="text-[#F9A51A]">Rp. {Number(booking.total_amount).toLocaleString()}</span></div>
+              <div className="flex justify-between text-base">
+                <span>Jumlah Pengunjung</span>
+                <span>{booking.quantity}</span>
+              </div>
+              <div className="flex justify-between text-base">
+                <span>Harga Satuan</span>
+                <span>Rp. {Number(booking.harga_satuan).toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between text-xl font-bold">
+                <span>Total Harga</span>
+                <span className="text-[#F9A51A]">Rp. {Number(booking.total_amount).toLocaleString()}</span>
+              </div>
             </section>
             {/* Card Rekening Bank */}
             <section>
@@ -171,10 +199,7 @@ export default function ETicketPaymentPage() {
                         <div className="text-gray-500 text-sm font-semibold">{bank.name}</div>
                         <div className="font-bold text-lg tracking-wider text-[#1A2341]">{bank.number}</div>
                       </div>
-                      <button
-                        className="text-[#F9A51A] font-bold hover:underline focus:outline-none px-2"
-                        onClick={() => handleCopy(bank.number, idx)}
-                      >
+                      <button className="text-[#F9A51A] font-bold hover:underline focus:outline-none px-2" onClick={() => handleCopy(bank.number, idx)}>
                         {copiedIdx === idx ? "Copied!" : "Copy"}
                       </button>
                     </div>
@@ -189,22 +214,42 @@ export default function ETicketPaymentPage() {
               <div className="font-bold text-xl mb-2 text-gray-800">Isikan Data Bank Anda</div>
               <div className="flex flex-col gap-2">
                 <label className="text-sm font-semibold text-gray-700">Nama Bank</label>
-                <input className="border border-gray-300 rounded-lg px-4 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-yellow-300" placeholder="Nama Bank..." value={bankName} onChange={e => setBankName(e.target.value)} required />
+                <input
+                  className="border border-gray-300 rounded-lg px-4 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-yellow-300"
+                  placeholder="Nama Bank..."
+                  value={bankName}
+                  onChange={(e) => setBankName(e.target.value)}
+                  required
+                />
               </div>
               <div className="flex flex-col gap-2">
                 <label className="text-sm font-semibold text-gray-700">Nama Akun Bank</label>
-                <input className="border border-gray-300 rounded-lg px-4 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-yellow-300" placeholder="Nama Akun..." value={bankAccount} onChange={e => setBankAccount(e.target.value)} required />
+                <input
+                  className="border border-gray-300 rounded-lg px-4 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-yellow-300"
+                  placeholder="Nama Akun..."
+                  value={bankAccount}
+                  onChange={(e) => setBankAccount(e.target.value)}
+                  required
+                />
               </div>
               <div className="flex flex-col gap-2">
                 <label className="text-sm font-semibold text-gray-700">Nomor Rekening</label>
-                <input className="border border-gray-300 rounded-lg px-4 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-yellow-300" placeholder="Nomor Rekening..." value={bankNumber} onChange={e => setBankNumber(e.target.value)} required />
+                <input
+                  className="border border-gray-300 rounded-lg px-4 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-yellow-300"
+                  placeholder="Nomor Rekening..."
+                  value={bankNumber}
+                  onChange={(e) => setBankNumber(e.target.value)}
+                  required
+                />
               </div>
               <div className="flex flex-col gap-2">
                 <label className="text-sm font-semibold text-gray-700">Upload Bukti Pembayaran</label>
                 <input type="file" accept="image/*" ref={fileInputRef} onChange={handleFileChange} className="border border-gray-300 rounded-lg px-4 py-2 bg-white" required />
                 {proofFile && <span className="text-xs text-gray-500">{proofFile.name}</span>}
               </div>
-              <button type="submit" disabled={submitting} className="mt-2 bg-[#F9A51A] hover:bg-yellow-400 text-white font-bold py-3 rounded-lg text-lg shadow disabled:opacity-60">{submitting ? "Memproses..." : "Konfirmasi Pembayaran"}</button>
+              <button type="submit" disabled={submitting} className="mt-2 bg-[#F9A51A] hover:bg-yellow-400 text-white font-bold py-3 rounded-lg text-lg shadow disabled:opacity-60">
+                {submitting ? "Memproses..." : "Konfirmasi Pembayaran"}
+              </button>
             </form>
           </section>
         </div>
@@ -212,4 +257,4 @@ export default function ETicketPaymentPage() {
       <Footer />
     </div>
   );
-} 
+}

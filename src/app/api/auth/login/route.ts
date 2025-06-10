@@ -17,7 +17,7 @@ const loginSchema = z.object({
 //isi dari metode ini yaitu POST
 export async function POST(request: Request) {
   try {
-    // Parsing data dari request body
+    // Parsing data dari request body berupa json
     const body = await request.json();
 
     // validasi untuk inputan email dan password sesuai dengan skema atau tidak
@@ -34,14 +34,14 @@ export async function POST(request: Request) {
 
     const { email, password } = validationResult.data;
 
-    // Find user by email
+    // Find user berdasarkan email yang diinputkan
     const user = await prisma.user.findUnique({
       where: {
         email,
       },
     });
 
-    // If user not found or not an admin
+    // Validasi untuk mengecek jika akun yang login (emial) harus memiliki role admin/superadmin
     if (!user || (user.role !== "SUPER_ADMIN" && user.role !== "TOURISM_ADMIN")) {
       return NextResponse.json({ message: "Email atau password salah" }, { status: 401 });
     }
@@ -70,7 +70,7 @@ export async function POST(request: Request) {
       token: token,
     });
 
-    // Set JWT in an HTTP-only cookie for security
+    // Set JWT dengan nama cookies admin-token, untuk mengecek status role
     response.cookies.set({
       name: "admin-token",
       value: token,
