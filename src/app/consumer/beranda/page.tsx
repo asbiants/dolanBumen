@@ -131,7 +131,7 @@ export default function Beranda() {
           <div className="flex flex-col md:flex-row gap-12 w-full items-center">
             <motion.div initial={{ opacity: 0, x: -50 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.6 }} className="w-full md:w-1/2">
               <div className="relative rounded-2xl overflow-hidden shadow-2xl">
-                <img src="https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1200&q=80" alt="Kebumen" className="w-full h-[400px] object-cover transform hover:scale-105 transition-transform duration-700" />
+                <img src="/sempor3.jpg" alt="Kebumen" className="w-full h-[400px] object-cover transform hover:scale-105 transition-transform duration-700" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
               </div>
             </motion.div>
