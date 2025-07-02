@@ -4,72 +4,59 @@ import * as bcrypt from "bcryptjs";
 import { z } from "zod";
 
 const prisma = new PrismaClient();
-
-// Validation schema for request body
+// Skema Validasi Form inputan pada halaman login admin dengan menggunakan zod
 const adminSchema = z.object({
   email: z.string().email(),
   password: z.string().min(8),
 });
-
 export async function POST(request: Request) {
   try {
-    // Parse request body
     const body = await request.json();
-
-    // Validate request body
+    //Proses Validasi dari form input dengan menggunakan skema validasi adminSchema
     const validationResult = adminSchema.safeParse(body);
     if (!validationResult.success) {
       return NextResponse.json(
         {
-          message: "Invalid request body",
+          message: "Data input tidak sesuai format",
           errors: validationResult.error.errors,
         },
         { status: 400 }
       );
     }
-
     const { email, password } = validationResult.data;
-
-    // Check if a super admin already exists
+    //inisialisasi super admin pada sistem
     const superAdminCount = await prisma.user.count({
       where: {
-        role: "SUPER_ADMIN", // Using the mapped value from schema.prisma
+        role: "SUPER_ADMIN",
       },
     });
-
-    // If a super admin already exists, reject the request
+    //inisialisasi apabila terdapat super admin maka tidak dapat membuat akun super admin di halaman init
     if (superAdminCount > 0) {
-      return NextResponse.json({ message: "Super admin already exists" }, { status: 403 });
+      return NextResponse.json({ message: "Super Admin Sudah Terdapat Pada Sistem" }, { status: 403 });
     }
-
-    // Check if email is already in use
+    //mengecek apakah email sudah terdaftar atau belum
     const existingUser = await prisma.user.findUnique({
       where: {
         email,
       },
     });
-
     if (existingUser) {
-      return NextResponse.json({ message: "Email is already in use" }, { status: 400 });
+      return NextResponse.json({ message: "Email telah digunakan" }, { status: 400 });
     }
-
-    // Hash the password
+    //Hash Password dengan bcrypt
     const hashedPassword = await bcrypt.hash(password, 10);
-
-    // Create the super admin user
+    //Membuat super admin di halaman inisialisasi
     const newAdmin = await prisma.user.create({
       data: {
         email,
         password: hashedPassword,
-        role: "SUPER_ADMIN", // Using the mapped value from schema.prisma
-        name: "Super Admin", // Default name, can be updated later
+        role: "SUPER_ADMIN",
+        name: "Super Admin",
       },
     });
-
-    // Return success response (without sensitive data)
     return NextResponse.json(
       {
-        message: "Super admin created successfully",
+        message: "Akun Super Admin Berhasil dibuat!",
         user: {
           id: newAdmin.id,
           email: newAdmin.email,
@@ -79,7 +66,7 @@ export async function POST(request: Request) {
       { status: 201 }
     );
   } catch (error) {
-    console.error("Error creating super admin:", error);
-    return NextResponse.json({ message: "Failed to create super admin" }, { status: 500 });
+    console.error("Proses Pembuatan Akun Super Admin Gagal", error);
+    return NextResponse.json({ message: "Gagal Membuat Akun Super Admin" }, { status: 500 });
   }
 }

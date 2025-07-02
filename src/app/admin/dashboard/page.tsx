@@ -449,7 +449,9 @@ export default function AdminDashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="flex items-center justify-center">
-              <Pie data={statusPieData} />
+              <div style={{ width: 300, height: 300 }}>
+                <Pie data={statusPieData} />
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -458,8 +460,10 @@ export default function AdminDashboardPage() {
             <CardTitle className="text-base font-semibold">Pengaduan per Jenis</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center justify-center">
-              <Bar data={typeBarData} options={{responsive:true, plugins:{legend:{display:false}}}} />
+            <div className="flex items-center justify-center w-full">
+              <div style={{ width: "100%", height: 300 }}>
+                <Bar data={typeBarData} options={{responsive:true, maintainAspectRatio: false, plugins:{legend:{display:false}}}} />
+              </div>
             </div>
           </CardContent>
         </Card>

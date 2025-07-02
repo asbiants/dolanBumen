@@ -59,15 +59,17 @@ export default function TourismMapPage() {
   const [showBasemapMenu, setShowBasemapMenu] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [legendOpen, setLegendOpen] = useState(false);
+  //handle fitur rute
   const [routeMenuOpen, setRouteMenuOpen] = useState(false);
   const [routeStart, setRouteStart] = useState<{ lat: number, lng: number } | null>(null);
   const [routeDest, setRouteDest] = useState<string | null>(null);
   const [useCurrentLocation, setUseCurrentLocation] = useState(false);
-  const startLatRef = useRef<HTMLInputElement>(null);
-  const startLngRef = useRef<HTMLInputElement>(null);
   const [routeGeoJSON, setRouteGeoJSON] = useState<any>(null);
   const [routeInfo, setRouteInfo] = useState<{ distance: number, duration: number } | null>(null);
   const [routeLoading, setRouteLoading] = useState(false);
+  /////////-----------------
+  const startLatRef = useRef<HTMLInputElement>(null);
+  const startLngRef = useRef<HTMLInputElement>(null);
   const [selectedDestination, setSelectedDestination] = useState<TouristDestination | null>(null);
   const [nearbyMenuOpen, setNearbyMenuOpen] = useState(false);
   const [nearbyRadius, setNearbyRadius] = useState(5);
@@ -231,7 +233,14 @@ export default function TourismMapPage() {
       setNearbyLoading(false);
       return;
     }
-    const filtered = destinations.filter(d => getDistanceKm(loc!.lat, loc!.lng, d.latitude, d.longitude) <= radius);
+    // Tambahkan distance ke setiap destinasi dan urutkan dari yang terdekat
+    const filtered = destinations
+      .map(d => ({
+        ...d,
+        distance: getDistanceKm(loc!.lat, loc!.lng, d.latitude, d.longitude)
+      }))
+      .filter(d => d.distance <= radius)
+      .sort((a, b) => a.distance - b.distance);
     setNearbyList(filtered);
     setNearbyLoading(false);
   };
@@ -326,7 +335,6 @@ export default function TourismMapPage() {
       const b = mapRef.current.getMap().getBounds();
       if (b && b.toArray) return b.toArray().flat();
     }
-    // fallback: area Banyumas
     return [109.3, -7.9, 110, -7.4];
   };
 
@@ -536,6 +544,12 @@ export default function TourismMapPage() {
                 <div>
                   <div className="font-bold text-xs text-green-900">{dest.name}</div>
                   <div className="text-[10px] text-gray-500">{dest.address}</div>
+                  {/* Tampilkan jarak jika ada */}
+                  {'distance' in dest && typeof dest.distance === "number" && (
+                    <div className="text-[10px] text-blue-700 font-semibold">
+                      {dest.distance.toFixed(2)} km
+                    </div>
+                  )}
                 </div>
               </div>
             ))}

@@ -5,7 +5,7 @@ import { z } from "zod";
 
 const prisma = new PrismaClient();
 
-// Validation schema for registration
+// Validation schema form menggunakan zod
 const registerSchema = z.object({
   name: z.string().min(1, "Nama wajib diisi"),
   email: z.string().email("Format email tidak valid"),
@@ -17,8 +17,7 @@ const registerSchema = z.object({
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-
-    // Validate request data
+    // Validasi request data yang diinputkan dengan schema yg dbuat
     const validationResult = registerSchema.safeParse(body);
     if (!validationResult.success) {
       return NextResponse.json(
@@ -29,25 +28,17 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
-
     const { name, email, password, phoneNumber, address } = validationResult.data;
-
-    // Check if user already exists
+    // Melakukan cek apakah email sudah digunakan atau belum
     const existingUser = await prisma.user.findUnique({
       where: { email },
     });
-
     if (existingUser) {
-      return NextResponse.json(
-        { message: "Email sudah terdaftar" },
-        { status: 400 }
-      );
+      return NextResponse.json({ message: "Email sudah terdaftar" }, { status: 400 });
     }
-
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
-
-    // Create user
+    // Menambahkan data user ke database
     const user = await prisma.user.create({
       data: {
         name,
@@ -58,19 +49,13 @@ export async function POST(request: Request) {
         role: "CONSUMER",
       },
     });
-
-    // Remove password from response
     const { password: _, ...userWithoutPassword } = user;
-
     return NextResponse.json({
       message: "Registrasi berhasil",
       user: userWithoutPassword,
     });
   } catch (error) {
     console.error("Registration error:", error);
-    return NextResponse.json(
-      { message: "Terjadi kesalahan saat registrasi" },
-      { status: 500 }
-    );
+    return NextResponse.json({ message: "Terjadi kesalahan saat registrasi" }, { status: 500 });
   }
-} 
+}

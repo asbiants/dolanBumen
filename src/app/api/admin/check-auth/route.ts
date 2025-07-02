@@ -17,24 +17,24 @@ interface JwtPayload {
 
 export async function GET() {
   try {
-    // Get token from cookies
+    // Get token dari cookies web browser
     const cookieStore = await cookies();
     const authToken = cookieStore.get("admin-token")?.value;
 
     if (!authToken) {
-      return NextResponse.json({ authenticated: false, message: "Not authenticated" }, { status: 401 });
+      return NextResponse.json({ authenticated: false, message: "Autentikasi Token Salah" }, { status: 401 });
     }
 
     try {
-      // Verify and decode the JWT token
+      // Verifikasi dan decode JWT token
       const decoded = jwt.verify(authToken, JWT_SECRET) as JwtPayload;
 
-      // Check if user is an admin
+      // Cek user sesuai dengan ketentuan rolenya
       if (decoded.role !== "SUPER_ADMIN" && decoded.role !== "TOURISM_ADMIN") {
-        return NextResponse.json({ authenticated: false, message: "Not authorized" }, { status: 403 });
+        return NextResponse.json({ authenticated: false, message: "Autentikasi Gagal!" }, { status: 403 });
       }
 
-      // Return user data without sensitive information
+      // Membawa data dari database apabila autentikasi berhasil
       return NextResponse.json({
         authenticated: true,
         user: {
@@ -45,13 +45,13 @@ export async function GET() {
         },
       });
     } catch (jwtError) {
-      // JWT validation failed
+      //
       console.error("JWT validation error:", jwtError);
 
-      return NextResponse.json({ authenticated: false, message: "Invalid or expired token" }, { status: 401 });
+      return NextResponse.json({ authenticated: false, message: "Token Invalid atau Tidak Sesuai" }, { status: 401 });
     }
   } catch (error) {
     console.error("Authentication check error:", error);
-    return NextResponse.json({ authenticated: false, message: "Authentication check failed" }, { status: 500 });
+    return NextResponse.json({ authenticated: false, message: "Autentikasi Gagal!" }, { status: 500 });
   }
 }

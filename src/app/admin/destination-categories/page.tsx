@@ -40,12 +40,12 @@ export default function DestinationCategoriesPage() {
     try {
       const response = await fetch("/api/admin/destination-categories");
       if (!response.ok) {
-        throw new Error("Failed to fetch categories");
+        throw new Error("Gagal Mengambil Data Kategori Wisata");
       }
       const data = await response.json();
       setCategories(data);
     } catch (error) {
-      toast.error("Failed to fetch categories");
+      toast.error("Gagal Mengambil Data Kategori Wisata");
     } finally {
       setIsLoading(false);
     }
@@ -62,16 +62,14 @@ export default function DestinationCategoriesPage() {
       const formDataToSend = new FormData();
       formDataToSend.append("name", formData.name);
       formDataToSend.append("description", formData.description);
-      
+
       // Only append icon if it's a File object
       if (formData.icon instanceof File) {
         formDataToSend.append("icon", formData.icon);
       }
 
-      const url = selectedCategory
-        ? `/api/admin/destination-categories/${selectedCategory.id}`
-        : "/api/admin/destination-categories";
-      
+      const url = selectedCategory ? `/api/admin/destination-categories/${selectedCategory.id}` : "/api/admin/destination-categories";
+
       const response = await fetch(url, {
         method: selectedCategory ? "PUT" : "POST",
         body: formDataToSend,
@@ -79,24 +77,20 @@ export default function DestinationCategoriesPage() {
 
       if (!response.ok) {
         const error = await response.text();
-        throw new Error(error || "Failed to save category");
+        throw new Error(error || "Gagal Menyimpan Data Kategori Wisata");
       }
 
-      toast.success(
-        selectedCategory
-          ? "Category updated successfully"
-          : "Category created successfully"
-      );
+      toast.success(selectedCategory ? "Update Kategori Wisata Berhasil" : "Kategori Wisata Berhasil Disimpan");
       setIsDialogOpen(false);
       fetchCategories();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to save category");
+      toast.error(error instanceof Error ? error.message : "Gagal Menyimpan Data Kategori Wisata");
     }
   };
 
   // Handle delete
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this category?")) return;
+    if (!confirm("Anda Yakin Akan Menghapus Data Kategori Wisata ini?")) return;
 
     try {
       const response = await fetch(`/api/admin/destination-categories/${id}`, {
@@ -105,13 +99,13 @@ export default function DestinationCategoriesPage() {
 
       if (!response.ok) {
         const error = await response.text();
-        throw new Error(error || "Failed to delete category");
+        throw new Error(error || "Gagal Menghapus Kategori Wisata");
       }
 
-      toast.success("Category deleted successfully");
+      toast.success("Kategori Wisata Berhasil Dihapus");
       fetchCategories();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to delete category");
+      toast.error(error instanceof Error ? error.message : "Gagal Menghapus Kategori Wisata");
     }
   };
 
@@ -142,7 +136,7 @@ export default function DestinationCategoriesPage() {
     if (!file) return;
 
     // Update formData with the File object
-    setFormData(prev => ({ ...prev, icon: file }));
+    setFormData((prev) => ({ ...prev, icon: file }));
   };
 
   return (
@@ -158,49 +152,22 @@ export default function DestinationCategoriesPage() {
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>
-                {selectedCategory ? "Edit Category" : "Add New Category"}
-              </DialogTitle>
+              <DialogTitle>{selectedCategory ? "Edit Category" : "Add New Category"}</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <Label htmlFor="name">Name</Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) =>
-                    setFormData({ ...formData, name: e.target.value })
-                  }
-                  required
-                />
+                <Input id="name" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} required />
               </div>
               <div>
                 <Label htmlFor="description">Description</Label>
-                <Input
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) =>
-                    setFormData({ ...formData, description: e.target.value })
-                  }
-                />
+                <Input id="description" value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} />
               </div>
               <div>
                 <Label htmlFor="icon">Icon</Label>
                 <div className="flex items-center gap-2">
-                  <Input
-                    id="icon"
-                    type="file"
-                    accept="image/*"
-                    onChange={handleFileUpload}
-                    disabled={isUploading}
-                  />
-                  {formData.icon && (
-                    <img
-                      src={formData.icon}
-                      alt="Preview"
-                      className="w-8 h-8 object-cover rounded"
-                    />
-                  )}
+                  <Input id="icon" type="file" accept="image/*" onChange={handleFileUpload} disabled={isUploading} />
+                  {formData.icon && <img src={formData.icon} alt="Preview" className="w-8 h-8 object-cover rounded" />}
                 </div>
               </div>
               <Button type="submit" className="w-full">
@@ -247,18 +214,10 @@ export default function DestinationCategoriesPage() {
                 </TableCell>
                 <TableCell>
                   <div className="flex gap-2">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleEdit(category)}
-                    >
+                    <Button variant="ghost" size="icon" onClick={() => handleEdit(category)}>
                       <Pencil className="h-4 w-4" />
                     </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleDelete(category.id)}
-                    >
+                    <Button variant="ghost" size="icon" onClick={() => handleDelete(category.id)}>
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
@@ -270,4 +229,4 @@ export default function DestinationCategoriesPage() {
       )}
     </div>
   );
-} 
+}

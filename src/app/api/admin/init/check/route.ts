@@ -5,7 +5,8 @@ const prisma = new PrismaClient();
 
 export async function GET() {
   try {
-    // Check if any super admin exists
+    //Inisialisasi untuk mengetahui apakah user dengan role super admin sudah ada atau belum di
+    //database
     const superAdminCount = await prisma.user.count({
       where: {
         role: "SUPER_ADMIN",

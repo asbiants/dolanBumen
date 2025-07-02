@@ -7,7 +7,7 @@ import { z } from "zod";
 const prisma = new PrismaClient();
 const JWT_SECRET = process.env.JWT_SECRET || "your-super-secret-jwt-key-for-development";
 
-// Validation schema for login
+// Validasi skema xod pada form login
 const loginSchema = z.object({
   email: z.string().email("Format email tidak valid"),
   password: z.string().min(1, "Password wajib diisi"),
@@ -16,8 +16,7 @@ const loginSchema = z.object({
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-
-    // Validate request data
+    // Validasi inputan berdasar zod
     const validationResult = loginSchema.safeParse(body);
     if (!validationResult.success) {
       return NextResponse.json(
@@ -28,50 +27,35 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
-
     const { email, password } = validationResult.data;
-
-    // Find user by email
+    // Matchng email dari database
     const user = await prisma.user.findUnique({
       where: { email },
     });
-
-    // Check if user exists and is a consumer
+    // Validasi role consumer
     if (!user || user.role !== "CONSUMER") {
-      return NextResponse.json(
-        { message: "Email atau password salah" },
-        { status: 401 }
-      );
+      return NextResponse.json({ message: "Email atau password salah" }, { status: 401 });
     }
-
-    // Check if password is correct
+    // Matching password
     const isPasswordValid = await bcrypt.compare(password, user.password || "");
     if (!isPasswordValid) {
-      return NextResponse.json(
-        { message: "Email atau password salah" },
-        { status: 401 }
-      );
+      return NextResponse.json({ message: "Email atau password salah" }, { status: 401 });
     }
-
-    // Create JWT payload
+    // Membuat JWT
     const payload = {
       id: user.id,
       email: user.email,
       name: user.name,
       role: user.role,
     };
-
     // Generate JWT token
     const token = jwt.sign(payload, JWT_SECRET, { expiresIn: "7d" });
-
-    // Create response
     const response = NextResponse.json({
       message: "Login berhasil",
       user: payload,
       token,
     });
-
-    // Set JWT in HTTP-only cookie
+    // SET COOKIE DARI JWT
     response.cookies.set({
       name: "consumer-token",
       value: token,
@@ -80,13 +64,9 @@ export async function POST(request: Request) {
       secure: process.env.NODE_ENV === "production",
       maxAge: 60 * 60 * 24 * 7, // 7 days
     });
-
     return response;
   } catch (error) {
     console.error("Login error:", error);
-    return NextResponse.json(
-      { message: "Terjadi kesalahan saat login" },
-      { status: 500 }
-    );
+    return NextResponse.json({ message: "Terjadi kesalahan saat login" }, { status: 500 });
   }
-} 
+}
