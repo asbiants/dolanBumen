@@ -128,6 +128,47 @@ export async function DELETE(
       await cloudinary.uploader.destroy(`destination-categories/${publicId}`);
     }
 
+    // Get all tourist destinations in this category
+    const destinations = await prisma.touristDestination.findMany({
+      where: { categoryId: categoryId },
+      select: { id: true, thumbnailUrl: true }
+    });
+
+    // Delete all related data for each destination
+    for (const destination of destinations) {
+      // Delete thumbnail from Cloudinary if exists
+      if (destination.thumbnailUrl) {
+        const publicId = destination.thumbnailUrl.split('/').pop()?.split('.')[0];
+        if (publicId) {
+          await cloudinary.uploader.destroy(publicId);
+        }
+      }
+
+      // Delete all related pengunjung records first
+      await prisma.pengunjung.deleteMany({ where: { destinasi_wisata_id: destination.id } });
+      
+      // Delete all related booking transactions
+      await prisma.booking_transaction.deleteMany({ where: { destinasi_wisata_id: destination.id } });
+      
+      // Delete all related photos
+      await prisma.destinationPhoto.deleteMany({ where: { destinationId: destination.id } });
+      
+      // Delete all related tickets
+      await prisma.ticket.deleteMany({ where: { destinationId: destination.id } });
+      
+      // Delete all related complaints
+      await prisma.complaint.deleteMany({ where: { destinationId: destination.id } });
+      
+      // Delete all related reviews
+      await prisma.destinationReview.deleteMany({ where: { destinationId: destination.id } });
+    }
+
+    // Delete all tourist destinations in this category
+    await prisma.touristDestination.deleteMany({
+      where: { categoryId: categoryId },
+    });
+
+    // Delete the category
     await prisma.destinationCategory.delete({
       where: { id: categoryId },
     });

@@ -16,6 +16,7 @@ import { DestinationPhotos } from "@/components/destination-photos";
 import { TicketStatus } from "@prisma/client";
 import dynamic from 'next/dynamic';
 import { FaMapMarkerAlt } from 'react-icons/fa';
+import { Dialog as SuccessDialog, DialogContent as SuccessDialogContent, DialogHeader as SuccessDialogHeader, DialogTitle as SuccessDialogTitle } from "@/components/ui/dialog";
 
 interface Ticket {
   id: string;
@@ -124,6 +125,7 @@ export default function TouristDestinationsPage() {
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [isSuccessDialogOpen, setIsSuccessDialogOpen] = useState(false);
 
   const fetchData = async () => {
     try {
@@ -226,6 +228,7 @@ export default function TouristDestinationsPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsUploading(true);
     try {
       const formDataToSend = new FormData();
       formDataToSend.append("name", formData.name);
@@ -262,8 +265,11 @@ export default function TouristDestinationsPage() {
       );
       setIsDialogOpen(false);
       fetchData();
+      setIsSuccessDialogOpen(true);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to save destination");
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -640,8 +646,18 @@ export default function TouristDestinationsPage() {
                   </div>
                 </div>
                 <div className="col-span-1 md:col-span-2">
-                  <Button type="submit" className="w-full">
-                    {selectedDestination ? "Update" : "Create"}
+                  <Button type="submit" className="w-full" disabled={isUploading}>
+                    {isUploading ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <svg className="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                        </svg>
+                        Loading...
+                      </span>
+                    ) : (
+                      selectedDestination ? "Update" : "Create"
+                    )}
                   </Button>
                 </div>
               </form>
@@ -1074,6 +1090,17 @@ export default function TouristDestinationsPage() {
           )}
         </DialogContent>
       </Dialog>
+      <SuccessDialog open={isSuccessDialogOpen} onOpenChange={setIsSuccessDialogOpen}>
+        <SuccessDialogContent>
+          <SuccessDialogHeader>
+            <SuccessDialogTitle>Success!</SuccessDialogTitle>
+          </SuccessDialogHeader>
+          <div className="text-center py-4">
+            <p>Data destinasi berhasil di-upload!</p>
+            <Button onClick={() => setIsSuccessDialogOpen(false)} className="mt-4 w-full">OK</Button>
+          </div>
+        </SuccessDialogContent>
+      </SuccessDialog>
     </div>
   );
 }

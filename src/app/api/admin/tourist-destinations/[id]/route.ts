@@ -115,10 +115,25 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
         await cloudinary.uploader.destroy(publicId);
       }
     }
+    
+    // Delete all related pengunjung records first (they reference booking_transaction)
+    await prisma.pengunjung.deleteMany({ where: { destinasi_wisata_id: id } });
+    
+    // Delete all related booking transactions
+    await prisma.booking_transaction.deleteMany({ where: { destinasi_wisata_id: id } });
+    
     // Delete all related photos
     await prisma.destinationPhoto.deleteMany({ where: { destinationId: id } });
+    
     // Delete all related tickets
     await prisma.ticket.deleteMany({ where: { destinationId: id } });
+    
+    // Delete all related complaints
+    await prisma.complaint.deleteMany({ where: { destinationId: id } });
+    
+    // Delete all related reviews
+    await prisma.destinationReview.deleteMany({ where: { destinationId: id } });
+    
     // Delete destination from database
     await prisma.touristDestination.delete({ where: { id } });
     return new NextResponse(null, { status: 204 });
