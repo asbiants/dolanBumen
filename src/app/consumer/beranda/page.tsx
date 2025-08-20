@@ -3,7 +3,6 @@ import React, { useEffect, useState } from "react";
 import Navbar from "@/components/navbar/navbar";
 import { Qwitcher_Grypen } from "next/font/google";
 import Footer from "@/components/footer/footer";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 
@@ -107,13 +106,13 @@ export default function Beranda() {
             <div className="flex flex-col sm:flex-row gap-4 items-center justify-center mb-10">
               <button
                 className="bg-[#AEE1D6] hover:bg-[#8fd1c2] text-[#1A2530] font-bold px-8 py-4 rounded-xl text-lg shadow-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#AEE1D6]"
-                onClick={() => router.push("/consumer/tumbas-wisata")}
+                onClick={() => router.push("/consumer/tourism-map")}
               >
                 Jelajahi Sekarang
               </button>
               <button
                 className="bg-white/10 hover:bg-white/20 text-white font-bold px-8 py-4 rounded-xl text-lg shadow-lg transition-all duration-200 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-white/30"
-                onClick={() => setShowAllCategories(true)}
+                onClick={() => router.push("/consumer/tumbas-wisata")}
               >
                 Lihat Semua Kategori
               </button>
@@ -143,7 +142,7 @@ export default function Beranda() {
                 yang eksotis seperti Pantai Menganti dan Pantai Suwuk, Kebumen juga memiliki pesona wisata alam lainnya seperti Goa Jatijajar, Sagara View, dan Geopark Karangsambung-Karangbolong yang menyimpan nilai geologi penting. Selain
                 itu, keramahan masyarakat lokal dan kekayaan kuliner tradisional turut menjadi daya tarik tersendiri bagi para wisatawan yang ingin menikmati pengalaman liburan yang autentik dan berkesan
               </p>
-              <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="bg-[#1A2530] text-white px-8 py-3 rounded-lg font-semibold text-sm hover:bg-[#2B4C7E] transition shadow-lg">
+              <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="bg-[#1A2530] text-white px-8 py-3 rounded-lg font-semibold text-sm hover:bg-[#2B4C7E] transition shadow-lg" onClick={() => router.push("/consumer/story-map")}>
                 Lihat Selengkapnya →
               </motion.button>
             </motion.div>
