@@ -28,6 +28,7 @@ interface TouristDestination {
   longitude: number;
   category: Category;
   thumbnailUrl?: string;
+  averageRating?: number;
 }
 
 const fetchDestinations = async (): Promise<TouristDestination[]> => {
@@ -61,15 +62,13 @@ export default function TourismMapPage() {
   const [legendOpen, setLegendOpen] = useState(false);
   //handle fitur rute
   const [routeMenuOpen, setRouteMenuOpen] = useState(false);
-  const [routeStart, setRouteStart] = useState<{ lat: number, lng: number } | null>(null);
+  const [routeStartLocation, setRouteStartLocation] = useState<string | null>(null);
   const [routeDest, setRouteDest] = useState<string | null>(null);
   const [useCurrentLocation, setUseCurrentLocation] = useState(false);
   const [routeGeoJSON, setRouteGeoJSON] = useState<any>(null);
   const [routeInfo, setRouteInfo] = useState<{ distance: number, duration: number } | null>(null);
   const [routeLoading, setRouteLoading] = useState(false);
   /////////-----------------
-  const startLatRef = useRef<HTMLInputElement>(null);
-  const startLngRef = useRef<HTMLInputElement>(null);
   const [selectedDestination, setSelectedDestination] = useState<TouristDestination | null>(null);
   const [nearbyMenuOpen, setNearbyMenuOpen] = useState(false);
   const [nearbyRadius, setNearbyRadius] = useState(5);
@@ -85,8 +84,7 @@ export default function TourismMapPage() {
   const [selectedKecamatan, setSelectedKecamatan] = useState<any>(null);
   const [kecamatanPopup, setKecamatanPopup] = useState<{ longitude: number; latitude: number } | null>(null);
   const [useNearbyCurrentLocation, setUseNearbyCurrentLocation] = useState(true);
-  const [nearbyManualLat, setNearbyManualLat] = useState('');
-  const [nearbyManualLng, setNearbyManualLng] = useState('');
+  const [nearbyStartLocation, setNearbyStartLocation] = useState<string | null>(null);
   const [clusterEnabled, setClusterEnabled] = useState(true);
   const [clusters, setClusters] = useState<any[]>([]);
   const [superclusterInstance, setSuperclusterInstance] = useState<any>(null);
@@ -203,10 +201,10 @@ export default function TourismMapPage() {
   // Handler nearby
   const handleShowNearby = async (radius: number) => {
     setNearbyLoading(true);
-    let loc = userLocation;
+    let loc: { lat: number, lng: number } | null = null;
 
     if (useNearbyCurrentLocation) {
-      if (!loc) {
+      if (!userLocation) {
         try {
           const pos = await getCurrentLocation();
           loc = pos;
@@ -215,32 +213,42 @@ export default function TourismMapPage() {
           setNearbyLoading(false);
           return;
         }
+      } else {
+        loc = userLocation;
       }
     } else {
-      // Pakai input manual
-      const lat = parseFloat(nearbyManualLat);
-      const lng = parseFloat(nearbyManualLng);
-      if (isNaN(lat) || isNaN(lng)) {
-        alert("Masukkan latitude dan longitude yang valid");
+      // Pakai destinasi yang dipilih dari database
+      if (!nearbyStartLocation) {
+        alert("Pilih destinasi awal terlebih dahulu");
         setNearbyLoading(false);
         return;
       }
-      loc = { lat, lng };
-      setUserLocation(loc); // opsional: update marker user
+      
+      const selectedDest = destinations.find(d => d.id === nearbyStartLocation);
+      if (!selectedDest) {
+        alert("Destinasi tidak ditemukan");
+        setNearbyLoading(false);
+        return;
+      }
+      
+      loc = { lat: selectedDest.latitude, lng: selectedDest.longitude };
     }
 
     if (!loc) {
       setNearbyLoading(false);
       return;
     }
+    
     // Tambahkan distance ke setiap destinasi dan urutkan dari yang terdekat
     const filtered = destinations
+      .filter(d => d.id !== nearbyStartLocation) // Exclude the starting destination
       .map(d => ({
         ...d,
         distance: getDistanceKm(loc!.lat, loc!.lng, d.latitude, d.longitude)
       }))
       .filter(d => d.distance <= radius)
       .sort((a, b) => a.distance - b.distance);
+    
     setNearbyList(filtered);
     setNearbyLoading(false);
   };
@@ -249,6 +257,7 @@ export default function TourismMapPage() {
   const handleShowRoute = async () => {
     setRouteLoading(true);
     let start: { lat: number, lng: number } | null = null;
+    
     if (useCurrentLocation) {
       try {
         start = await getCurrentLocation();
@@ -257,24 +266,35 @@ export default function TourismMapPage() {
         setRouteLoading(false);
         return;
       }
-    } else if (routeStart) {
-      start = routeStart;
+    } else if (routeStartLocation) {
+      // Pakai destinasi yang dipilih dari database
+      const selectedStartDest = destinations.find(d => d.id === routeStartLocation);
+      if (!selectedStartDest) {
+        alert("Destinasi awal tidak ditemukan");
+        setRouteLoading(false);
+        return;
+      }
+      start = { lat: selectedStartDest.latitude, lng: selectedStartDest.longitude };
     } else {
-      alert("Isi titik awal terlebih dahulu");
+      alert("Pilih destinasi awal terlebih dahulu");
       setRouteLoading(false);
       return;
     }
+    
     const destObj = destinations.find(d => d.id === routeDest);
     if (!destObj) {
-      alert("Pilih destinasi terlebih dahulu");
+      alert("Pilih destinasi tujuan terlebih dahulu");
       setRouteLoading(false);
       return;
     }
+    
     const startLng = start.lng;
     const startLat = start.lat;
     const endLng = destObj.longitude;
     const endLat = destObj.latitude;
+    
     const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${startLng},${startLat};${endLng},${endLat}?geometries=geojson&overview=full&access_token=${process.env.NEXT_PUBLIC_MAPBOX_TOKEN}`;
+    
     try {
       const res = await fetch(url);
       const data = await res.json();
@@ -321,6 +341,7 @@ export default function TourismMapPage() {
         name: d.name,
         address: d.address,
         thumbnailUrl: d.thumbnailUrl || null,
+        averageRating: d.averageRating || 0,
       },
       geometry: {
         type: "Point" as const,
@@ -348,6 +369,7 @@ export default function TourismMapPage() {
         categoryId: props.categoryId,
         categoryIcon: props.categoryIcon,
         categoryName: props.categoryName,
+        averageRating: props.averageRating || 0,
       }),
       reduce: (accumulated: any, props: any) => {
         if (!accumulated.categoryCount) accumulated.categoryCount = {};
@@ -356,6 +378,9 @@ export default function TourismMapPage() {
           if (!accumulated.categoryIconMap) accumulated.categoryIconMap = {};
           accumulated.categoryIconMap[props.categoryId] = props.categoryIcon;
         }
+        // Track rating tertinggi dalam cluster
+        if (!accumulated.maxRating) accumulated.maxRating = 0;
+        accumulated.maxRating = Math.max(accumulated.maxRating, props.averageRating || 0);
       },
     });
     supercluster.load(geojson.features as import('supercluster').PointFeature<any>[]);
@@ -443,16 +468,34 @@ export default function TourismMapPage() {
             <input type="checkbox" checked={useCurrentLocation} onChange={e => setUseCurrentLocation(e.target.checked)} />
             <span className="text-xs">Gunakan lokasi saya</span>
           </label>
+          
+          {/* Tombol untuk mereset ke lokasi user */}
           {!useCurrentLocation && (
-            <div className="flex gap-2 mb-2">
-              <input ref={startLatRef} type="number" step="any" placeholder="Lat awal" className="border rounded px-2 py-1 w-24 text-xs" />
-              <input ref={startLngRef} type="number" step="any" placeholder="Lng awal" className="border rounded px-2 py-1 w-24 text-xs" />
-              <button type="button" className="text-xs px-2 py-1 rounded bg-gray-200 hover:bg-gray-300" onClick={() => {
-                setRouteStart({
-                  lat: parseFloat(startLatRef.current?.value || "0"),
-                  lng: parseFloat(startLngRef.current?.value || "0"),
-                });
-              }}>Set Awal</button>
+            <button
+              className="w-full bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 rounded transition flex items-center justify-center gap-2 mb-2"
+              type="button"
+              onClick={() => {
+                setUseCurrentLocation(true);
+                setRouteStartLocation(null);
+              }}
+            >
+              <span>Reset ke Lokasi Saya</span>
+            </button>
+          )}
+          {!useCurrentLocation && (
+            <div className="mb-2">
+              <select
+                className="w-full border rounded px-2 py-1 text-xs"
+                value={routeStartLocation || ''}
+                onChange={e => setRouteStartLocation(e.target.value)}
+              >
+                <option value="">Pilih Destinasi Awal</option>
+                {destinations.map(dest => (
+                  <option key={dest.id} value={dest.id}>
+                    {dest.name}
+                  </option>
+                ))}
+              </select>
             </div>
           )}
           <select
@@ -460,14 +503,42 @@ export default function TourismMapPage() {
             value={routeDest || ''}
             onChange={e => setRouteDest(e.target.value)}
           >
-            <option value="">Pilih Destinasi</option>
+            <option value="">Pilih Destinasi Tujuan</option>
             {destinations.map(dest => (
               <option key={dest.id} value={dest.id}>{dest.name}</option>
             ))}
           </select>
-          <button className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 rounded transition flex items-center justify-center gap-2 disabled:opacity-60" type="button" onClick={handleShowRoute} disabled={routeLoading}>
+          
+          {/* Info lokasi yang dipilih */}
+          {!useCurrentLocation && routeStartLocation && (
+            <div className="text-xs text-gray-500 mb-2">
+              Lokasi Awal: {destinations.find(d => d.id === routeStartLocation)?.name || 'Tidak diketahui'}
+            </div>
+          )}
+          {routeDest && (
+            <div className="text-xs text-gray-500 mb-2">
+              Destinasi Tujuan: {destinations.find(d => d.id === routeDest)?.name || 'Tidak diketahui'}
+            </div>
+          )}
+          <button className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 rounded transition flex items-center justify-center gap-2 disabled:opacity-60 mb-2" type="button" onClick={handleShowRoute} disabled={routeLoading}>
             {routeLoading ? <span className="animate-spin">⏳</span> : <span> Tampilkan Rute</span>}
           </button>
+          
+          {/* Tombol untuk mengatur lokasi awal ke destinasi yang sedang dipilih */}
+          {selectedDestination && (
+            <button
+              className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-2 rounded transition flex items-center justify-center gap-2"
+              type="button"
+              onClick={() => {
+                setRouteStartLocation(selectedDestination.id);
+                setUseCurrentLocation(false);
+                setRouteMenuOpen(false);
+                alert(`Lokasi awal diatur ke: ${selectedDestination.name}`);
+              }}
+            >
+              <span>Gunakan {selectedDestination.name} sebagai Lokasi Awal</span>
+            </button>
+          )}
         </div>
       )}
 
@@ -501,24 +572,34 @@ export default function TourismMapPage() {
             />
             <span className="text-xs">Gunakan lokasi saya</span>
           </label>
+          
+          {/* Tombol untuk mereset ke lokasi user */}
           {!useNearbyCurrentLocation && (
-            <div className="flex gap-2 mb-2">
-              <input
-                type="number"
-                step="any"
-                placeholder="Lat"
-                className="border rounded px-2 py-1 w-24 text-xs"
-                value={nearbyManualLat}
-                onChange={e => setNearbyManualLat(e.target.value)}
-              />
-              <input
-                type="number"
-                step="any"
-                placeholder="Lng"
-                className="border rounded px-2 py-1 w-24 text-xs"
-                value={nearbyManualLng}
-                onChange={e => setNearbyManualLng(e.target.value)}
-              />
+            <button
+              className="w-full bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 rounded transition flex items-center justify-center gap-2 mb-2"
+              type="button"
+              onClick={() => {
+                setUseNearbyCurrentLocation(true);
+                setNearbyStartLocation(null);
+              }}
+            >
+              <span>Reset ke Lokasi Saya</span>
+            </button>
+          )}
+          {!useNearbyCurrentLocation && (
+            <div className="mb-2">
+              <select
+                className="w-full border rounded px-2 py-1 text-xs"
+                value={nearbyStartLocation || ''}
+                onChange={e => setNearbyStartLocation(e.target.value)}
+              >
+                <option value="">Pilih Destinasi Awal</option>
+                {destinations.map(dest => (
+                  <option key={dest.id} value={dest.id}>
+                    {dest.name}
+                  </option>
+                ))}
+              </select>
             </div>
           )}
           <button
@@ -529,8 +610,29 @@ export default function TourismMapPage() {
           >
             {nearbyLoading ? <span className="animate-spin">⏳</span> : <span>Cari Terdekat</span>}
           </button>
-          {userLocation && (
+          
+          {/* Tombol untuk mengatur lokasi awal ke destinasi yang sedang dipilih */}
+          {selectedDestination && (
+            <button
+              className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 rounded transition flex items-center justify-center gap-2 mb-2"
+              type="button"
+              onClick={() => {
+                setNearbyStartLocation(selectedDestination.id);
+                setUseNearbyCurrentLocation(false);
+                setNearbyMenuOpen(false);
+                alert(`Lokasi awal diatur ke: ${selectedDestination.name}`);
+              }}
+            >
+              <span>Gunakan {selectedDestination.name} sebagai Lokasi Awal</span>
+            </button>
+          )}
+          {userLocation && useNearbyCurrentLocation && (
             <div className="text-xs text-gray-500 mb-2">Lokasi Anda: {userLocation.lat.toFixed(4)}, {userLocation.lng.toFixed(4)}</div>
+          )}
+          {!useNearbyCurrentLocation && nearbyStartLocation && (
+            <div className="text-xs text-gray-500 mb-2">
+              Lokasi Awal: {destinations.find(d => d.id === nearbyStartLocation)?.name || 'Tidak diketahui'}
+            </div>
           )}
           <div className="max-h-48 overflow-y-auto">
             {nearbyList.length === 0 && !nearbyLoading && <div className="text-xs text-gray-400">Tidak ada destinasi dalam radius ini.</div>}
@@ -840,6 +942,12 @@ export default function TourismMapPage() {
                             <img src={iconUrl} alt="Cluster Icon" className="w-12 h-12 rounded-full border-4 border-green-400 bg-white object-cover shadow-lg" style={{transition: 'box-shadow 0.2s'}} loading="lazy" />
                           )}
                           <span className="absolute bottom-0 right-0 bg-green-600 text-white text-xs font-bold rounded-full px-2 py-0.5 border border-white shadow">{cluster.properties.point_count_abbreviated}</span>
+                          {/* Icon trending untuk cluster dengan rating 5 */}
+                          {cluster.properties.maxRating === 5 && (
+                            <div className="absolute -top-2 -right-2 w-6 h-6 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full border-2 border-white shadow-lg flex items-center justify-center animate-pulse">
+                              <span className="text-white text-xs font-bold">🔥</span>
+                            </div>
+                          )}
                         </div>
                       </button>
                     </MemoMarker>
@@ -863,15 +971,23 @@ export default function TourismMapPage() {
                           onMouseUp={e => e.currentTarget.style.transform = 'scale(1)'}
                           onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
                         >
-                          {dest.categoryIcon && (
-                            <img
-                              src={dest.categoryIcon}
-                              alt={dest.categoryName}
-                              className="w-10 h-10 rounded-full border-2 border-white shadow-lg bg-white object-cover animate-bounce-short"
-                              style={{ transform: "translateY(-8px)", transition: 'box-shadow 0.2s' }}
-                              loading="lazy"
-                            />
-                          )}
+                                                     <div className="relative">
+                             {dest.categoryIcon && (
+                               <img
+                                 src={dest.categoryIcon}
+                                 alt={dest.categoryName}
+                                 className="w-10 h-10 rounded-full border-2 border-white shadow-lg bg-white object-cover animate-bounce-short"
+                                 style={{ transform: "translateY(-8px)", transition: 'box-shadow 0.2s' }}
+                                 loading="lazy"
+                               />
+                             )}
+                             {/* Icon trending untuk rating 5 bintang */}
+                             {dest.averageRating === 5 && (
+                               <div className="absolute -top-2 -right-2 w-6 h-6 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full border-2 border-white shadow-lg flex items-center justify-center animate-pulse">
+                                 <span className="text-white text-xs font-bold">🔥</span>
+                               </div>
+                             )}
+                           </div>
                         </button>
                       </MemoMarker>
                       {/* Popup info destinasi */}
@@ -907,15 +1023,39 @@ export default function TourismMapPage() {
                               )}
                               <span className="text-xs text-blue-800 font-semibold">{selectedDestination.category?.name}</span>
                             </div>
-                            <button
-                              className="w-full bg-gradient-to-r from-yellow-400 to-blue-500 hover:from-yellow-500 hover:to-blue-600 text-white font-bold py-2 rounded-xl transition text-xs mt-1 shadow-lg"
-                              onClick={() => {
-                                setRouteMenuOpen(true);
-                                setRouteDest(selectedDestination.id);
-                              }}
-                            >
-                              <span className="flex items-center gap-2 justify-center"><FaLocationArrow /> Rute</span>
-                            </button>
+                            
+                            {/* Info rating dan trending */}
+                            {selectedDestination.averageRating && (
+                              <div className="flex items-center gap-2 mt-1 bg-yellow-50 rounded px-2 py-1 mb-2">
+                                <span className="text-xs text-yellow-800 font-semibold">⭐ Rating: {selectedDestination.averageRating.toFixed(1)}</span>
+                                {selectedDestination.averageRating === 5 && (
+                                  <span className="text-xs bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-2 py-1 rounded-full font-bold animate-pulse">
+                                    🔥 Trending
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                            <div className="flex gap-2 mt-1">
+                              <button
+                                className="flex-1 bg-gradient-to-r from-yellow-400 to-blue-500 hover:from-yellow-500 hover:to-blue-600 text-white font-bold py-2 rounded-xl transition text-xs shadow-lg"
+                                onClick={() => {
+                                  setRouteMenuOpen(true);
+                                  setRouteDest(selectedDestination.id);
+                                }}
+                              >
+                                <span className="flex items-center gap-2 justify-center"><FaLocationArrow /> Rute</span>
+                              </button>
+                              <button
+                                className="flex-1 bg-gradient-to-r from-green-400 to-green-600 hover:from-green-500 hover:to-green-700 text-white font-bold py-2 rounded-xl transition text-xs shadow-lg"
+                                onClick={() => {
+                                  setNearbyStartLocation(selectedDestination.id);
+                                  setUseNearbyCurrentLocation(false);
+                                  setNearbyMenuOpen(true);
+                                }}
+                              >
+                                <span className="flex items-center gap-2 justify-center"><FaLocationArrow /> Nearby</span>
+                              </button>
+                            </div>
                           </div>
                         </MemoPopup>
                       )}
@@ -938,15 +1078,23 @@ export default function TourismMapPage() {
                       tabIndex={0}
                       aria-label={`Lihat info ${dest.name}`}
                     >
-                      {dest.category?.icon && (
-                        <img
-                          src={dest.category.icon}
-                          alt={dest.category.name}
-                          className="w-10 h-10 rounded-full border-2 border-white shadow-lg bg-white object-cover animate-bounce-short"
-                          style={{ transform: "translateY(-8px)" }}
-                          loading="lazy"
-                        />
-                      )}
+                                             <div className="relative">
+                         {dest.category?.icon && (
+                           <img
+                             src={dest.category.icon}
+                             alt={dest.category.name}
+                             className="w-10 h-10 rounded-full border-2 border-white shadow-lg bg-white object-cover animate-bounce-short"
+                             style={{ transform: "translateY(-8px)" }}
+                             loading="lazy"
+                           />
+                         )}
+                         {/* Icon trending untuk rating 5 bintang */}
+                         {(dest.averageRating || 0) === 5 && (
+                           <div className="absolute -top-2 -right-2 w-6 h-6 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full border-2 border-white shadow-lg flex items-center justify-center animate-pulse">
+                             <span className="text-white text-xs font-bold">🔥</span>
+                           </div>
+                         )}
+                       </div>
                     </button>
                   </MemoMarker>
                   {/* Popup info destinasi */}
@@ -982,15 +1130,39 @@ export default function TourismMapPage() {
                           )}
                           <span className="text-xs text-blue-800 font-semibold">{selectedDestination.category?.name}</span>
                         </div>
-                        <button
-                          className="w-full bg-gradient-to-r from-yellow-400 to-blue-500 hover:from-yellow-500 hover:to-blue-600 text-white font-bold py-2 rounded-xl transition text-xs mt-1 shadow-lg"
-                          onClick={() => {
-                            setRouteMenuOpen(true);
-                            setRouteDest(selectedDestination.id);
-                          }}
-                        >
-                          <span className="flex items-center gap-2 justify-center"><FaLocationArrow /> Rute</span>
-                        </button>
+                        
+                        {/* Info rating dan trending */}
+                        {selectedDestination.averageRating && (
+                          <div className="flex items-center gap-2 mt-1 bg-yellow-50 rounded px-2 py-1 mb-2">
+                            <span className="text-xs text-yellow-800 font-semibold">⭐ Rating: {selectedDestination.averageRating.toFixed(1)}</span>
+                            {selectedDestination.averageRating === 5 && (
+                              <span className="text-xs bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-2 py-1 rounded-full font-bold animate-pulse">
+                                🔥 Trending
+                              </span>
+                            )}
+                          </div>
+                        )}
+                        <div className="flex gap-2 mt-1">
+                          <button
+                            className="flex-1 bg-gradient-to-r from-yellow-400 to-blue-500 hover:from-yellow-500 hover:to-blue-600 text-white font-bold py-2 rounded-xl transition text-xs shadow-lg"
+                            onClick={() => {
+                              setRouteMenuOpen(true);
+                              setRouteDest(selectedDestination.id);
+                            }}
+                          >
+                            <span className="flex items-center gap-2 justify-center"><FaLocationArrow /> Rute</span>
+                          </button>
+                          <button
+                            className="flex-1 bg-gradient-to-r from-green-400 to-green-600 hover:from-green-500 hover:to-green-700 text-white font-bold py-2 rounded-xl transition text-xs shadow-lg"
+                            onClick={() => {
+                              setNearbyStartLocation(selectedDestination.id);
+                              setUseNearbyCurrentLocation(false);
+                              setNearbyMenuOpen(true);
+                            }}
+                          >
+                            <span className="flex items-center gap-2 justify-center"><FaLocationArrow /> Nearby</span>
+                          </button>
+                        </div>
                       </div>
                     </MemoPopup>
                   )}
@@ -1061,12 +1233,42 @@ export default function TourismMapPage() {
               </div>
             </div>
             {/* Marker lokasi user */}
-            {userLocation && (
+            {userLocation && useNearbyCurrentLocation && (
               <MemoMarker longitude={userLocation.lng} latitude={userLocation.lat} anchor="center">
                 <div className="w-8 h-8 md:w-6 md:h-6 rounded-full bg-blue-500 border-4 border-white shadow-lg flex items-center justify-center">
                   <span className="block w-3 h-3 md:w-2 md:h-2 bg-white rounded-full"></span>
                 </div>
               </MemoMarker>
+            )}
+            
+            {/* Marker lokasi awal yang dipilih untuk nearby */}
+            {!useNearbyCurrentLocation && nearbyStartLocation && (
+              (() => {
+                const startDest = destinations.find(d => d.id === nearbyStartLocation);
+                if (!startDest) return null;
+                return (
+                  <MemoMarker longitude={startDest.longitude} latitude={startDest.latitude} anchor="center">
+                    <div className="w-8 h-8 md:w-6 md:h-6 rounded-full bg-green-500 border-4 border-white shadow-lg flex items-center justify-center">
+                      <span className="block w-3 h-3 md:w-2 md:h-2 bg-white rounded-full"></span>
+                    </div>
+                  </MemoMarker>
+                );
+              })()
+            )}
+            
+            {/* Marker lokasi awal yang dipilih untuk rute */}
+            {!useCurrentLocation && routeStartLocation && (
+              (() => {
+                const startDest = destinations.find(d => d.id === routeStartLocation);
+                if (!startDest) return null;
+                return (
+                  <MemoMarker longitude={startDest.longitude} latitude={startDest.latitude} anchor="center">
+                    <div className="w-8 h-8 md:w-6 md:h-6 rounded-full bg-purple-500 border-4 border-white shadow-lg flex items-center justify-center">
+                      <span className="block w-3 h-3 md:w-2 md:h-2 bg-white rounded-full"></span>
+                    </div>
+                  </MemoMarker>
+                );
+              })()
             )}
           </Map>
         </Suspense>
